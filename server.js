@@ -118,6 +118,8 @@ function serveStatic(res, baseDir, relPath) {
     const ext = path.extname(filePath).toLowerCase();
     res.writeHead(200, {
       "Content-Type": MIME[ext] || "application/octet-stream",
+      // Always revalidate so a redeploy never leaves a stale app.js/css cached.
+      "Cache-Control": "no-cache",
     });
     fs.createReadStream(filePath).pipe(res);
   });
