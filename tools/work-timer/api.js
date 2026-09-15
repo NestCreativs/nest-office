@@ -3,13 +3,13 @@
  * Stores the currently-running session on the server so the clock keeps
  * running even if you close the tab, plus a history of finished sessions.
  *
- * data.json = { active: null | { type, start, label }, records: [...] }
+ * <DATA_DIR>/work-timer.json = { active: null | { type, start, label }, records: [...] }
  *   record = { id, type: "work"|"break", start, end, seconds, label }
  */
 const fs = require("fs");
-const path = require("path");
+const { fileFor } = require("../../lib/datadir");
 
-const DATA_FILE = path.join(__dirname, "data.json");
+const DATA_FILE = fileFor("work-timer.json");
 
 function load() {
   try {

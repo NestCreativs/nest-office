@@ -22,6 +22,27 @@ folder in `tools/`.
 
 To use a different port: `set PORT=8080 && node server.js`.
 
+## Data storage & deployment
+
+All tools save their data as JSON files in **one central folder**:
+
+- **Locally:** `toolhub/data/` (created automatically) — `todo.json`,
+  `work-timer.json`, `notes.json`.
+- **On a host (Railway, etc.):** set the env var **`DATA_DIR=/data`** and mount a
+  persistent volume at **`/data`**. All tool data is then written there and
+  survives restarts and redeploys.
+
+Railway setup:
+
+| Setting | Value |
+|---------|-------|
+| Start command | `npm start` |
+| Volume mount path | `/data` |
+| Environment variable | `DATA_DIR=/data` |
+
+Without a volume the app still runs, but on hosts with an ephemeral filesystem the
+data resets on redeploy — so mount the volume if you want it to persist.
+
 ## How it's organized
 
 ```
@@ -31,6 +52,12 @@ toolhub/
 ├─ Nest Creativs Office.vbs   double-click: hidden server + open dashboard
 ├─ Stop Nest Creativs Office.bat
 ├─ start.bat                  visible-console launcher (for troubleshooting)
+├─ lib/
+│  └─ datadir.js              resolves the central data folder (DATA_DIR)
+├─ data/                      all tool data (git-ignored; created on first save)
+│  ├─ todo.json
+│  ├─ work-timer.json
+│  └─ notes.json
 ├─ public/                    the dashboard shell
 │  ├─ index.html
 │  ├─ app.js

@@ -1,11 +1,11 @@
 /**
  * Notes backend — demonstrates persisting data to disk.
- * Notes are stored in tools/notes/data.json (created on first save).
+ * Notes are stored in <DATA_DIR>/notes.json (created on first save).
  */
 const fs = require("fs");
-const path = require("path");
+const { fileFor } = require("../../lib/datadir");
 
-const DATA_FILE = path.join(__dirname, "data.json");
+const DATA_FILE = fileFor("notes.json");
 
 function load() {
   try {

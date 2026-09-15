@@ -1,11 +1,11 @@
 /**
- * To-Do backend — tasks persisted to tools/todo/data.json.
+ * To-Do backend — tasks persisted to <DATA_DIR>/todo.json.
  * Array order = rank (top = highest).
  */
 const fs = require("fs");
-const path = require("path");
+const { fileFor } = require("../../lib/datadir");
 
-const DATA_FILE = path.join(__dirname, "data.json");
+const DATA_FILE = fileFor("todo.json");
 
 function load() {
   try {
