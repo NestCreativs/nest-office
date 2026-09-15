@@ -1,0 +1,13 @@
+{
+  "name": "toolhub",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A private, local, extensible platform for building your own tools.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}

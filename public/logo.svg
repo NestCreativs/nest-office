@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <g fill="#2352ff">
+    <!-- left post -->
+    <polygon points="27,24 39,24 39,76 27,76" />
+    <!-- right post -->
+    <polygon points="61,24 73,24 73,76 61,76" />
+    <!-- diagonal -->
+    <polygon points="27,24 39,24 73,76 61,76" />
+    <!-- play mark -->
+    <polygon points="41,57 41,71 52,64" />
+  </g>
+</svg>

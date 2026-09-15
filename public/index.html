@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nest Creativs Office</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+  </head>
+  <body>
+    <div class="app">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="brand">
+          <img class="brand-mark" src="/logo.svg" alt="Nest Creativs" />
+          <div class="brand-text">
+            <strong>Nest Creativs</strong>
+            <small>Office</small>
+          </div>
+        </div>
+
+        <div class="search">
+          <input id="search" type="search" placeholder="Search tools…" autocomplete="off" />
+        </div>
+
+        <nav id="tool-list" class="tool-list" aria-label="Tools">
+          <div class="empty">Loading…</div>
+        </nav>
+
+        <div class="sidebar-footer">
+          <button id="theme-toggle" class="ghost-btn" title="Toggle theme">◐ Theme</button>
+          <a class="ghost-btn" href="/tools/_docs/ui.html" target="content-frame">＋ New tool</a>
+        </div>
+      </aside>
+
+      <!-- Main -->
+      <main class="main">
+        <!-- Home / welcome -->
+        <section id="home" class="home">
+          <header class="home-head">
+            <h1>Nest Creativs Office</h1>
+            <p>Your private workspace. Every tool runs locally on your machine — pick one to start, or add your own.</p>
+          </header>
+          <div id="cards" class="cards"></div>
+        </section>
+
+        <!-- A tool loads here, isolated in its own frame -->
+        <div id="frame-wrap" class="frame-wrap" hidden>
+          <div class="tool-bar">
+            <button id="back-btn" class="ghost-btn">← All tools</button>
+            <span id="tool-title" class="tool-title"></span>
+            <a id="open-new" class="ghost-btn" target="_blank" rel="noopener">↗ Open full</a>
+          </div>
+          <iframe id="content-frame" name="content-frame" title="Tool" src="about:blank"></iframe>
+        </div>
+      </main>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

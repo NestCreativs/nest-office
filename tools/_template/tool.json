@@ -1,0 +1,9 @@
+{
+  "id": "my-tool",
+  "name": "My Tool",
+  "description": "One-line description of what this tool does.",
+  "icon": "🔧",
+  "color": "#6366f1",
+  "tags": "example",
+  "order": 100
+}

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Tool</title>
+    <!-- Shared styling (buttons, inputs, theme). Optional but recommended. -->
+    <link rel="stylesheet" href="/tool-kit.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>My Tool</h1>
+      <p class="sub">Copy this folder to start a new tool.</p>
+
+      <div class="card">
+        <label for="input">Type something</label>
+        <input type="text" id="input" placeholder="Hello" />
+        <div class="row" style="margin-top: 12px">
+          <button class="btn" id="run">Run (local)</button>
+          <button class="btn secondary" id="run-api">Run (via backend)</button>
+        </div>
+        <pre id="out" style="margin-top: 14px">Output appears here…</pre>
+      </div>
+    </div>
+
+    <script>
+      const out = document.getElementById("out");
+
+      // Example 1: pure front-end logic (no server needed).
+      document.getElementById("run").addEventListener("click", () => {
+        const v = document.getElementById("input").value;
+        out.textContent = v ? v.toUpperCase() : "(type something first)";
+      });
+
+      // Example 2: call this tool's backend at /api/<folder-name>/...
+      // The folder name here is "_template" but folders starting with "_"
+      // are hidden — rename the folder to enable it.
+      document.getElementById("run-api").addEventListener("click", async () => {
+        const v = document.getElementById("input").value;
+        try {
+          const res = await fetch("/api/my-tool/echo", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: v }),
+          });
+          const data = await res.json();
+          out.textContent = JSON.stringify(data, null, 2);
+        } catch (e) {
+          out.textContent = "Backend error: " + e.message;
+        }
+      });
+    </script>
+  </body>
+</html>

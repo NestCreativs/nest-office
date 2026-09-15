@@ -1,0 +1,8 @@
+{
+  "name": "Work Timer",
+  "description": "Time work & breaks, keep records, see your daily average.",
+  "icon": "⏱",
+  "color": "#ef4444",
+  "tags": "productivity",
+  "order": 6
+}

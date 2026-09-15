@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Work Timer</title>
+    <link rel="stylesheet" href="/tool-kit.css" />
+    <style>
+      .clock-card { text-align: center; padding: 30px 20px; }
+      .mode-pill {
+        display: inline-block; padding: 4px 14px; border-radius: 999px;
+        font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+        background: var(--surface-2); color: var(--muted);
+      }
+      .mode-pill.work { background: color-mix(in srgb, #ef4444 20%, transparent); color: #ef4444; }
+      .mode-pill.break { background: color-mix(in srgb, #0ea5e9 20%, transparent); color: #0ea5e9; }
+      .clock {
+        font-size: clamp(48px, 12vw, 76px); font-weight: 800; letter-spacing: 2px;
+        font-variant-numeric: tabular-nums; margin: 12px 0 4px;
+        font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+      }
+      .clock-label { color: var(--muted); min-height: 20px; margin-bottom: 20px; }
+      .controls { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+      .btn.work { background: #ef4444; color: #fff; }
+      .btn.break { background: #0ea5e9; color: #fff; }
+      .btn.stop { background: #334155; color: #fff; }
+
+      .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 26px 0; }
+      @media (max-width: 560px) { .stats { grid-template-columns: 1fr; } }
+      .stat-card { text-align: center; }
+
+      table { width: 100%; border-collapse: collapse; font-size: 14px; }
+      th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); }
+      th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+      td.dur { font-variant-numeric: tabular-nums; }
+      .badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 700; }
+      .badge.work { background: color-mix(in srgb, #ef4444 18%, transparent); color: #ef4444; }
+      .badge.break { background: color-mix(in srgb, #0ea5e9 18%, transparent); color: #0ea5e9; }
+      .del { border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 15px; }
+      .del:hover { color: var(--err); }
+      .table-head { display: flex; justify-content: space-between; align-items: center; margin: 8px 0 6px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>⏱ Work Timer</h1>
+      <p class="sub">Track focused work and breaks. The clock keeps running even if you close this tab.</p>
+
+      <div class="card clock-card">
+        <span class="mode-pill" id="mode">Idle</span>
+        <div class="clock" id="clock">00:00:00</div>
+        <div class="clock-label" id="clock-label">Not running</div>
+        <div style="max-width: 320px; margin: 0 auto 16px">
+          <input type="text" id="label" placeholder="What are you working on? (optional)" />
+        </div>
+        <div class="controls">
+          <button class="btn work" id="start-work">▶ Start work</button>
+          <button class="btn break" id="start-break">☕ Break</button>
+          <button class="btn stop" id="stop">■ Stop</button>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="card stat-card">
+          <div class="stat-label">Today's work</div>
+          <div class="stat" id="today">0m</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-label">Avg / working day</div>
+          <div class="stat" id="avg">0m</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-label">Days tracked</div>
+          <div class="stat" id="days">0</div>
+        </div>
+      </div>
+
+      <div class="table-head">
+        <h3 style="margin: 0">Records</h3>
+        <button class="btn secondary" id="clear">Clear all records</button>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Type</th><th>Task</th><th>Date</th><th>Time</th><th class="dur">Duration</th><th></th></tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <p class="note" id="empty" hidden>No records yet — start your first session above.</p>
+    </div>
+
+    <script>
+      const api = (p, body) =>
+        fetch("/api/work-timer" + p, {
+          method: body ? "POST" : "GET",
+          headers: { "Content-Type": "application/json" },
+          body: body ? JSON.stringify(body) : undefined,
+        }).then((r) => r.json());
+
+      let state = { active: null, records: [] };
+      let ticker = null;
+
+      function fmtDur(sec) {
+        const h = Math.floor(sec / 3600);
+        const m = Math.floor((sec % 3600) / 60);
+        const s = sec % 60;
+        return [h, m, s].map((n) => String(n).padStart(2, "0")).join(":");
+      }
+      function fmtShort(sec) {
+        const h = Math.floor(sec / 3600);
+        const m = Math.round((sec % 3600) / 60);
+        if (h && m) return `${h}h ${m}m`;
+        if (h) return `${h}h`;
+        return `${m}m`;
+      }
+      const dayKey = (ts) => new Date(ts).toLocaleDateString();
+
+      function renderClock() {
+        const clock = document.getElementById("clock");
+        const mode = document.getElementById("mode");
+        const label = document.getElementById("clock-label");
+        if (state.active) {
+          const sec = Math.floor((Date.now() - state.active.start) / 1000);
+          clock.textContent = fmtDur(sec);
+          mode.textContent = state.active.type === "work" ? "Working" : "On break";
+          mode.className = "mode-pill " + state.active.type;
+          label.textContent =
+            (state.active.label ? "“" + state.active.label + "” · " : "") +
+            "started " + new Date(state.active.start).toLocaleTimeString();
+        } else {
+          clock.textContent = "00:00:00";
+          mode.textContent = "Idle";
+          mode.className = "mode-pill";
+          label.textContent = "Not running";
+        }
+      }
+
+      function renderStats() {
+        const workByDay = {};
+        for (const r of state.records) {
+          if (r.type !== "work") continue;
+          const k = dayKey(r.start);
+          workByDay[k] = (workByDay[k] || 0) + r.seconds;
+        }
+        // include an active work session in today's total
+        let todaySec = workByDay[dayKey(Date.now())] || 0;
+        if (state.active && state.active.type === "work") {
+          todaySec += Math.floor((Date.now() - state.active.start) / 1000);
+        }
+        const dayTotals = Object.values(workByDay);
+        const days = dayTotals.length;
+        const avg = days ? dayTotals.reduce((a, b) => a + b, 0) / days : 0;
+
+        document.getElementById("today").textContent = fmtShort(todaySec);
+        document.getElementById("avg").textContent = fmtShort(avg);
+        document.getElementById("days").textContent = days;
+      }
+
+      function renderRows() {
+        const rows = document.getElementById("rows");
+        rows.innerHTML = "";
+        document.getElementById("empty").hidden = state.records.length > 0;
+        for (const r of state.records) {
+          const tr = document.createElement("tr");
+          tr.innerHTML =
+            `<td><span class="badge ${r.type}">${r.type}</span></td>` +
+            `<td>${escapeHtml(r.label) || "<span class='note'>—</span>"}</td>` +
+            `<td>${new Date(r.start).toLocaleDateString()}</td>` +
+            `<td>${new Date(r.start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` +
+            `–${new Date(r.end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</td>` +
+            `<td class="dur">${fmtShort(r.seconds)}</td>`;
+          const tdDel = document.createElement("td");
+          const del = document.createElement("button");
+          del.className = "del"; del.textContent = "✕"; del.title = "Delete record";
+          del.onclick = async () => { state = await api("/delete", { id: r.id }); renderAll(); };
+          tdDel.appendChild(del);
+          tr.appendChild(tdDel);
+          rows.appendChild(tr);
+        }
+      }
+
+      function escapeHtml(s) {
+        return String(s || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+      }
+
+      function renderAll() {
+        renderClock();
+        renderStats();
+        renderRows();
+        clearInterval(ticker);
+        if (state.active) {
+          ticker = setInterval(() => { renderClock(); renderStats(); }, 1000);
+        }
+      }
+
+      document.getElementById("start-work").onclick = async () => {
+        const label = document.getElementById("label").value.trim();
+        state = await api("/start", { type: "work", label });
+        renderAll();
+      };
+      document.getElementById("start-break").onclick = async () => {
+        state = await api("/start", { type: "break", label: "" });
+        renderAll();
+      };
+      document.getElementById("stop").onclick = async () => {
+        state = await api("/stop", {});
+        document.getElementById("label").value = "";
+        renderAll();
+      };
+      document.getElementById("clear").onclick = async () => {
+        if (!confirm("Delete ALL records? This cannot be undone.")) return;
+        state = await api("/clear", {});
+        renderAll();
+      };
+
+      (async () => { state = await api("/state"); renderAll(); })();
+    </script>
+  </body>
+</html>

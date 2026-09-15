@@ -1,0 +1,105 @@
+/* Tool Hub — shared styles for individual tools.
+   Link this from any tool's ui.html:  <link rel="stylesheet" href="/tool-kit.css">
+   It gives you theme-aware colors, buttons, inputs, and layout helpers. */
+
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --surface-2: #eef0f4;
+  --border: #e2e5ea;
+  --text: #1a1d24;
+  --muted: #6b7280;
+  --accent: #6366f1;
+  --accent-fg: #ffffff;
+  --ok: #16a34a;
+  --err: #dc2626;
+  --radius: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1016;
+    --surface: #171a22;
+    --surface-2: #1f232d;
+    --border: #2a2f3a;
+    --text: #e6e8ee;
+    --muted: #8b93a4;
+    --accent: #7c83ff;
+    --accent-fg: #0e1016;
+  }
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.wrap {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 28px clamp(16px, 4vw, 32px) 64px;
+}
+h1 { font-size: 22px; margin: 0 0 4px; }
+.sub { color: var(--muted); margin: 0 0 22px; }
+
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+
+label { display: block; font-size: 13px; color: var(--muted); margin: 0 0 6px; }
+
+input[type="text"], input[type="number"], input[type="search"], select, textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  font: inherit;
+}
+textarea { resize: vertical; min-height: 140px; font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
+input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+
+.btn {
+  border: none;
+  background: var(--accent);
+  color: var(--accent-fg);
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+}
+.btn:hover { filter: brightness(1.05); }
+.btn.secondary {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+}
+
+.stat { font-size: 26px; font-weight: 700; }
+.stat-label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+
+.note { font-size: 13px; color: var(--muted); }
+.ok { color: var(--ok); }
+.err { color: var(--err); }
+
+pre {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  overflow: auto;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 13px;
+}
+code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }

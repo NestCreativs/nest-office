@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>To-Do List</title>
+    <link rel="stylesheet" href="/tool-kit.css" />
+    <style>
+      .add-row { display: flex; gap: 10px; margin-bottom: 22px; }
+      .add-row input { flex: 1; }
+
+      ul.tasks { list-style: none; margin: 0; padding: 0; }
+      li.task {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 12px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--surface);
+        margin-bottom: 8px;
+      }
+      li.task.done .text { text-decoration: line-through; color: var(--muted); }
+
+      .check {
+        width: 22px; height: 22px; flex-shrink: 0;
+        border: 2px solid var(--border); border-radius: 6px;
+        cursor: pointer; display: grid; place-items: center;
+        color: transparent; font-size: 14px; font-weight: 700;
+      }
+      .task.done .check { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+
+      .text { flex: 1; cursor: text; outline: none; padding: 2px 0; }
+      .rank { display: flex; flex-direction: column; gap: 2px; }
+      .icon-btn {
+        border: none; background: transparent; color: var(--muted);
+        cursor: pointer; font-size: 14px; line-height: 1; padding: 2px 5px; border-radius: 6px;
+      }
+      .icon-btn:hover { background: var(--surface-2); color: var(--text); }
+      .icon-btn.del:hover { color: var(--err); }
+      .icon-btn:disabled { opacity: .25; cursor: default; background: transparent; }
+
+      .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap" style="max-width: 620px">
+      <h1>✓ To-Do</h1>
+      <p class="sub">Drag-free ranking with the arrows. Click a task to edit it.</p>
+
+      <div class="add-row">
+        <input type="text" id="new" placeholder="Add a task and press Enter…" autofocus />
+        <button class="btn" id="add">Add</button>
+      </div>
+
+      <ul class="tasks" id="list"></ul>
+
+      <div class="foot">
+        <span class="note" id="count"></span>
+        <button class="btn secondary" id="clear">Clear completed</button>
+      </div>
+    </div>
+
+    <script>
+      const list = document.getElementById("list");
+      const api = (p, body) =>
+        fetch("/api/todo" + p, {
+          method: body ? "POST" : "GET",
+          headers: { "Content-Type": "application/json" },
+          body: body ? JSON.stringify(body) : undefined,
+        }).then((r) => r.json());
+
+      let tasks = [];
+
+      async function refresh() {
+        ({ tasks } = await api("/list"));
+        render();
+      }
+
+      function render() {
+        list.innerHTML = "";
+        if (!tasks.length) {
+          list.innerHTML = '<p class="note">Nothing here yet. Add your first task above.</p>';
+        }
+        tasks.forEach((t, i) => {
+          const li = document.createElement("li");
+          li.className = "task" + (t.done ? " done" : "");
+
+          const check = document.createElement("div");
+          check.className = "check";
+          check.textContent = "✓";
+          check.title = "Toggle done";
+          check.onclick = async () => { await api("/toggle", { id: t.id }); refresh(); };
+
+          const text = document.createElement("div");
+          text.className = "text";
+          text.textContent = t.text;
+          text.contentEditable = "true";
+          text.spellcheck = false;
+          text.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); text.blur(); } };
+          text.onblur = async () => {
+            const v = text.textContent.trim();
+            if (v && v !== t.text) await api("/edit", { id: t.id, text: v });
+            else text.textContent = t.text;
+          };
+
+          const rank = document.createElement("div");
+          rank.className = "rank";
+          const up = document.createElement("button");
+          up.className = "icon-btn"; up.textContent = "▲"; up.title = "Move up";
+          up.disabled = i === 0;
+          up.onclick = async () => { await api("/move", { id: t.id, dir: "up" }); refresh(); };
+          const down = document.createElement("button");
+          down.className = "icon-btn"; down.textContent = "▼"; down.title = "Move down";
+          down.disabled = i === tasks.length - 1;
+          down.onclick = async () => { await api("/move", { id: t.id, dir: "down" }); refresh(); };
+          rank.appendChild(up); rank.appendChild(down);
+
+          const del = document.createElement("button");
+          del.className = "icon-btn del"; del.textContent = "✕"; del.title = "Delete";
+          del.onclick = async () => { await api("/delete", { id: t.id }); refresh(); };
+
+          li.appendChild(check);
+          li.appendChild(text);
+          li.appendChild(rank);
+          li.appendChild(del);
+          list.appendChild(li);
+        });
+
+        const done = tasks.filter((t) => t.done).length;
+        document.getElementById("count").textContent =
+          tasks.length ? `${done} of ${tasks.length} done` : "";
+      }
+
+      async function addTask() {
+        const input = document.getElementById("new");
+        const text = input.value.trim();
+        if (!text) return;
+        input.value = "";
+        await api("/add", { text });
+        refresh();
+      }
+
+      document.getElementById("add").onclick = addTask;
+      document.getElementById("new").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") addTask();
+      });
+      document.getElementById("clear").onclick = async () => {
+        await api("/clear-done", {});
+        refresh();
+      };
+
+      refresh();
+    </script>
+  </body>
+</html>

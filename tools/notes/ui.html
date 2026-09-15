@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Notes</title>
+    <link rel="stylesheet" href="/tool-kit.css" />
+    <style>
+      .note-item {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--surface);
+        margin-bottom: 10px;
+      }
+      .note-item p { margin: 0; white-space: pre-wrap; flex: 1; }
+      .note-item time { color: var(--muted); font-size: 12px; }
+      .del { border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 18px; }
+      .del:hover { color: var(--err); }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>📝 Notes</h1>
+      <p class="sub">Saved to a file on your PC via the tool's backend — they persist across restarts.</p>
+
+      <div class="card" style="margin-bottom: 20px">
+        <textarea id="text" placeholder="Write a note…" style="min-height: 90px"></textarea>
+        <div class="row" style="margin-top: 10px">
+          <button class="btn" id="add">Save note</button>
+          <span id="status" class="note"></span>
+        </div>
+      </div>
+
+      <div id="list"></div>
+    </div>
+
+    <script>
+      const list = document.getElementById("list");
+      const status = document.getElementById("status");
+
+      async function refresh() {
+        const res = await fetch("/api/notes/list");
+        const { notes } = await res.json();
+        list.innerHTML = "";
+        if (!notes.length) {
+          list.innerHTML = '<p class="note">No notes yet.</p>';
+          return;
+        }
+        for (const n of notes) {
+          const div = document.createElement("div");
+          div.className = "note-item";
+          const p = document.createElement("p");
+          p.textContent = n.text;
+          const time = document.createElement("time");
+          time.textContent = new Date(n.at).toLocaleString();
+          const meta = document.createElement("div");
+          meta.appendChild(p);
+          meta.appendChild(time);
+          meta.style.flex = "1";
+          const del = document.createElement("button");
+          del.className = "del";
+          del.textContent = "✕";
+          del.title = "Delete";
+          del.onclick = async () => {
+            await fetch("/api/notes/delete", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id: n.id }),
+            });
+            refresh();
+          };
+          div.appendChild(meta);
+          div.appendChild(del);
+          list.appendChild(div);
+        }
+      }
+
+      document.getElementById("add").onclick = async () => {
+        const ta = document.getElementById("text");
+        const text = ta.value.trim();
+        if (!text) return;
+        const res = await fetch("/api/notes/add", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+        });
+        if (res.ok) {
+          ta.value = "";
+          status.textContent = "Saved ✓";
+          status.className = "note ok";
+          setTimeout(() => (status.textContent = ""), 1500);
+          refresh();
+        }
+      };
+
+      refresh();
+    </script>
+  </body>
+</html>

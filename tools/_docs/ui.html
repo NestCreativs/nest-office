@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Add a tool</title>
+    <link rel="stylesheet" href="/tool-kit.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>➕ Add a new tool</h1>
+      <p class="sub">Every tool is just a folder. No build step, no restart for UI changes.</p>
+
+      <div class="card">
+        <h3 style="margin-top: 0">1. Copy the template</h3>
+        <p>Duplicate the folder <code>tools/_template</code> and rename it, e.g. <code>tools/my-thing</code>.</p>
+        <p class="note">Folders that start with <code>_</code> or <code>.</code> are hidden from the dashboard (that's why the template doesn't show up).</p>
+      </div>
+
+      <div class="card" style="margin-top: 16px">
+        <h3 style="margin-top: 0">2. Edit <code>tool.json</code></h3>
+        <pre>{
+  "name": "My Thing",
+  "description": "What it does.",
+  "icon": "✨",
+  "color": "#10b981",
+  "tags": "utility",
+  "order": 10
+}</pre>
+        <p class="note">The folder name becomes the tool's id and its URL/API prefix.</p>
+      </div>
+
+      <div class="card" style="margin-top: 16px">
+        <h3 style="margin-top: 0">3. Build the UI in <code>ui.html</code></h3>
+        <p>It's a normal standalone web page. Link <code>/tool-kit.css</code> for the shared look. Write any HTML/CSS/JS you want — it runs isolated in its own frame.</p>
+      </div>
+
+      <div class="card" style="margin-top: 16px">
+        <h3 style="margin-top: 0">4. (Optional) Add a backend in <code>api.js</code></h3>
+        <p>Need server-side logic, file access, or to call an API with a secret key? Add <code>api.js</code>. Your UI calls it at:</p>
+        <pre>fetch("/api/my-thing/whatever", { method: "POST", ... })</pre>
+        <p class="note">See <code>tools/_template/api.js</code> for the handler shape. Edit it freely — it reloads on each request, no restart needed.</p>
+      </div>
+
+      <div class="card" style="margin-top: 16px">
+        <h3 style="margin-top: 0">5. Refresh</h3>
+        <p>Reload the dashboard. Your tool appears automatically in the sidebar and on the home screen. New tool folders are picked up without restarting the server.</p>
+      </div>
+
+      <p class="sub" style="margin-top: 24px">
+        Tip: ask Claude Code to "add a &lt;whatever&gt; tool to my Tool Hub" and it can scaffold the whole folder for you.
+      </p>
+    </div>
+  </body>
+</html>
