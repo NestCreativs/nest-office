@@ -192,7 +192,14 @@ const server = http.createServer(async (req, res) => {
   return serveStatic(res, PUBLIC_DIR, pathname);
 });
 
-server.listen(PORT, () => {
+// Keep the process alive if an unexpected error slips through, instead of
+// letting the platform mark the deploy as crashed.
+process.on("uncaughtException", (err) => console.error("[toolhub] uncaughtException:", err));
+process.on("unhandledRejection", (err) => console.error("[toolhub] unhandledRejection:", err));
+
+// Bind to 0.0.0.0 so the hosting platform's health check can reach the app
+// (Node otherwise defaults to IPv6 "::", which some platforms can't reach).
+server.listen(PORT, "0.0.0.0", () => {
   const tools = discoverTools();
   console.log("");
   console.log("  ┌───────────────────────────────────────────────┐");
