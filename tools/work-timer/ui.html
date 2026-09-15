@@ -6,86 +6,144 @@
     <title>Work Timer</title>
     <link rel="stylesheet" href="/tool-kit.css" />
     <style>
-      .clock-card { text-align: center; padding: 30px 20px; }
-      .mode-pill {
-        display: inline-block; padding: 4px 14px; border-radius: 999px;
-        font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
-        background: var(--surface-2); color: var(--muted);
+      body { display: flex; flex-direction: column; }
+      .wrap { width: 100%; }
+
+      /* ---- Timer stage ---- */
+      .stage {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 18px;
+        padding: 10px 0 26px;
       }
-      .mode-pill.work { background: color-mix(in srgb, #ef4444 20%, transparent); color: #ef4444; }
-      .mode-pill.break { background: color-mix(in srgb, #0ea5e9 20%, transparent); color: #0ea5e9; }
-      .clock {
-        font-size: clamp(48px, 12vw, 76px); font-weight: 800; letter-spacing: 2px;
-        font-variant-numeric: tabular-nums; margin: 12px 0 4px;
+      .phase-pill {
+        padding: 6px 18px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        background: color-mix(in srgb, var(--accent) 22%, transparent);
+        color: var(--accent);
+        border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+      }
+      .phase-pill.break {
+        background: color-mix(in srgb, var(--ice) 20%, transparent);
+        color: var(--ice);
+        border-color: color-mix(in srgb, var(--ice) 45%, transparent);
+      }
+
+      .ring-wrap {
+        position: relative;
+        width: clamp(250px, 58vmin, 360px);
+        aspect-ratio: 1;
+      }
+      .ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+      .ring .track { fill: none; stroke: var(--surface-2); stroke-width: 12; }
+      .ring .prog {
+        fill: none;
+        stroke: var(--accent);
+        stroke-width: 12;
+        stroke-linecap: round;
+        transition: stroke 0.3s ease;
+      }
+      .ring .prog.break { stroke: var(--ice); }
+      .ring .prog.paused { opacity: 0.4; }
+      .time {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        font-size: clamp(42px, 11vmin, 70px);
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 1px;
         font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
       }
-      .clock-label { color: var(--muted); min-height: 20px; margin-bottom: 20px; }
-      .controls { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-      .btn.work { background: #ef4444; color: #fff; }
-      .btn.break { background: #0ea5e9; color: #fff; }
-      .btn.stop { background: #334155; color: #fff; }
+      .status { color: var(--muted); font-size: 14px; min-height: 20px; }
 
-      .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 26px 0; }
+      .controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+      .controls .btn { min-width: 110px; }
+      .btn.ghost { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+      .btn.ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+      .task-row { width: min(440px, 100%); }
+      .task-row input { text-align: center; }
+
+      /* ---- Panel below (stats / records) ---- */
+      .panel { display: flex; flex-direction: column; gap: 18px; }
+      .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
       @media (max-width: 560px) { .stats { grid-template-columns: 1fr; } }
       .stat-card { text-align: center; }
 
-      table { width: 100%; border-collapse: collapse; font-size: 14px; }
-      th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); }
-      th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
-      td.dur { font-variant-numeric: tabular-nums; }
-      .badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 700; }
-      .badge.work { background: color-mix(in srgb, #ef4444 18%, transparent); color: #ef4444; }
-      .badge.break { background: color-mix(in srgb, #0ea5e9 18%, transparent); color: #0ea5e9; }
-      .del { border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 15px; }
-      .del:hover { color: var(--err); }
-      .table-head { display: flex; justify-content: space-between; align-items: center; margin: 8px 0 6px; }
+      .rec { display: flex; align-items: center; gap: 12px; padding: 11px 14px;
+             border: 1px solid var(--border); border-radius: 10px; background: var(--surface); margin-bottom: 8px; }
+      .rec .dur { font-weight: 700; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+      .rec .task { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .rec .task.empty { color: var(--muted); }
+      .rec .date { color: var(--muted); font-size: 13px; flex-shrink: 0; }
+      .rec .del { border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 15px; flex-shrink: 0; }
+      .rec .del:hover { color: var(--err); }
+      .table-head { display: flex; justify-content: space-between; align-items: center; }
+
+      /* ---- Fullscreen ---- */
+      #stage:fullscreen { width: 100%; height: 100%; justify-content: center; background: var(--bg); gap: 26px; }
+      #stage:fullscreen .ring-wrap { width: min(70vmin, 560px); }
+      body.fs .panel, body.fs h1, body.fs .sub { display: none; }
     </style>
   </head>
   <body>
     <div class="wrap">
-      <h1>⏱ Work Timer</h1>
-      <p class="sub">Track focused work and breaks. The clock keeps running even if you close this tab.</p>
+      <h1>Work Timer</h1>
+      <p class="sub">Count your work time in your local timezone. Add breaks whenever you like — no fixed durations.</p>
 
-      <div class="card clock-card">
-        <span class="mode-pill" id="mode">Idle</span>
-        <div class="clock" id="clock">00:00:00</div>
-        <div class="clock-label" id="clock-label">Not running</div>
-        <div style="max-width: 320px; margin: 0 auto 16px">
-          <input type="text" id="label" placeholder="What are you working on? (optional)" />
+      <div id="stage" class="stage">
+        <span class="phase-pill" id="pill">WORK</span>
+        <div class="ring-wrap">
+          <svg class="ring" viewBox="0 0 240 240">
+            <circle class="track" cx="120" cy="120" r="108" />
+            <circle class="prog" id="prog" cx="120" cy="120" r="108" />
+          </svg>
+          <div class="time" id="time">00:00</div>
         </div>
+        <div class="status" id="status">Ready</div>
+
+        <div class="task-row">
+          <input type="text" id="task" placeholder="What are you working on?" maxlength="200" />
+        </div>
+
         <div class="controls">
-          <button class="btn work" id="start-work">▶ Start work</button>
-          <button class="btn break" id="start-break">☕ Break</button>
-          <button class="btn stop" id="stop">■ Stop</button>
+          <button class="btn" id="startBtn">Start</button>
+          <button class="btn ghost" id="breakBtn">Break</button>
+          <button class="btn ghost" id="fsBtn">Full Screen</button>
         </div>
       </div>
 
-      <div class="stats">
-        <div class="card stat-card">
-          <div class="stat-label">Today's work</div>
-          <div class="stat" id="today">0m</div>
+      <div class="panel">
+        <div class="stats">
+          <div class="card stat-card">
+            <div class="stat-label">Today's work</div>
+            <div class="stat" id="today">0m</div>
+          </div>
+          <div class="card stat-card">
+            <div class="stat-label">Avg / working day</div>
+            <div class="stat" id="avg">0m</div>
+          </div>
+          <div class="card stat-card">
+            <div class="stat-label">Days tracked</div>
+            <div class="stat" id="days">0</div>
+          </div>
         </div>
-        <div class="card stat-card">
-          <div class="stat-label">Avg / working day</div>
-          <div class="stat" id="avg">0m</div>
-        </div>
-        <div class="card stat-card">
-          <div class="stat-label">Days tracked</div>
-          <div class="stat" id="days">0</div>
-        </div>
-      </div>
 
-      <div class="table-head">
-        <h3 style="margin: 0">Records</h3>
-        <button class="btn secondary" id="clear">Clear all records</button>
+        <div>
+          <div class="table-head">
+            <h3 style="margin: 0">Work sessions</h3>
+            <button class="btn ghost" id="clearBtn">Clear all</button>
+          </div>
+          <div id="recs" style="margin-top: 10px"></div>
+          <p class="note" id="empty" hidden>No sessions yet — press Start to begin.</p>
+        </div>
       </div>
-      <table>
-        <thead>
-          <tr><th>Type</th><th>Task</th><th>Date</th><th>Time</th><th class="dur">Duration</th><th></th></tr>
-        </thead>
-        <tbody id="rows"></tbody>
-      </table>
-      <p class="note" id="empty" hidden>No records yet — start your first session above.</p>
     </div>
 
     <script>
@@ -96,123 +154,151 @@
           body: body ? JSON.stringify(body) : undefined,
         }).then((r) => r.json());
 
-      let state = { active: null, records: [] };
-      let ticker = null;
+      const $ = (id) => document.getElementById(id);
+      const prog = $("prog");
+      const C = 2 * Math.PI * 108;
+      prog.style.strokeDasharray = C;
+      prog.style.strokeDashoffset = 0; // full ring (decorative, no countdown)
 
-      function fmtDur(sec) {
-        const h = Math.floor(sec / 3600);
-        const m = Math.floor((sec % 3600) / 60);
-        const s = sec % 60;
-        return [h, m, s].map((n) => String(n).padStart(2, "0")).join(":");
+      let records = [];
+      // mode: 'work' | 'break'; elapsed = seconds of the current segment
+      const st = { mode: "work", running: false, elapsed: 0 };
+
+      // ---- formatting (all local timezone) ----
+      function fmt(s) {
+        const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+        const mm = String(m).padStart(2, "0"), sss = String(ss).padStart(2, "0");
+        return h > 0 ? h + ":" + mm + ":" + sss : mm + ":" + sss;
       }
       function fmtShort(sec) {
-        const h = Math.floor(sec / 3600);
-        const m = Math.round((sec % 3600) / 60);
-        if (h && m) return `${h}h ${m}m`;
-        if (h) return `${h}h`;
-        return `${m}m`;
+        sec = Math.round(sec);
+        const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60);
+        if (h && m) return h + "h " + m + "m";
+        if (h) return h + "h";
+        return m + "m";
       }
-      const dayKey = (ts) => new Date(ts).toLocaleDateString();
+      const localDay = (ts) => new Date(ts).toDateString();
 
-      function renderClock() {
-        const clock = document.getElementById("clock");
-        const mode = document.getElementById("mode");
-        const label = document.getElementById("clock-label");
-        if (state.active) {
-          const sec = Math.floor((Date.now() - state.active.start) / 1000);
-          clock.textContent = fmtDur(sec);
-          mode.textContent = state.active.type === "work" ? "Working" : "On break";
-          mode.className = "mode-pill " + state.active.type;
-          label.textContent =
-            (state.active.label ? "“" + state.active.label + "” · " : "") +
-            "started " + new Date(state.active.start).toLocaleTimeString();
-        } else {
-          clock.textContent = "00:00:00";
-          mode.textContent = "Idle";
-          mode.className = "mode-pill";
-          label.textContent = "Not running";
-        }
-      }
-
-      function renderStats() {
-        const workByDay = {};
-        for (const r of state.records) {
-          if (r.type !== "work") continue;
-          const k = dayKey(r.start);
-          workByDay[k] = (workByDay[k] || 0) + r.seconds;
-        }
-        // include an active work session in today's total
-        let todaySec = workByDay[dayKey(Date.now())] || 0;
-        if (state.active && state.active.type === "work") {
-          todaySec += Math.floor((Date.now() - state.active.start) / 1000);
-        }
-        const dayTotals = Object.values(workByDay);
-        const days = dayTotals.length;
-        const avg = days ? dayTotals.reduce((a, b) => a + b, 0) / days : 0;
-
-        document.getElementById("today").textContent = fmtShort(todaySec);
-        document.getElementById("avg").textContent = fmtShort(avg);
-        document.getElementById("days").textContent = days;
-      }
-
-      function renderRows() {
-        const rows = document.getElementById("rows");
-        rows.innerHTML = "";
-        document.getElementById("empty").hidden = state.records.length > 0;
-        for (const r of state.records) {
-          const tr = document.createElement("tr");
-          tr.innerHTML =
-            `<td><span class="badge ${r.type}">${r.type}</span></td>` +
-            `<td>${escapeHtml(r.label) || "<span class='note'>—</span>"}</td>` +
-            `<td>${new Date(r.start).toLocaleDateString()}</td>` +
-            `<td>${new Date(r.start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` +
-            `–${new Date(r.end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</td>` +
-            `<td class="dur">${fmtShort(r.seconds)}</td>`;
-          const tdDel = document.createElement("td");
-          const del = document.createElement("button");
-          del.className = "del"; del.textContent = "✕"; del.title = "Delete record";
-          del.onclick = async () => { state = await api("/delete", { id: r.id }); renderAll(); };
-          tdDel.appendChild(del);
-          tr.appendChild(tdDel);
-          rows.appendChild(tr);
-        }
-      }
-
-      function escapeHtml(s) {
-        return String(s || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-      }
-
-      function renderAll() {
-        renderClock();
+      // ---- rendering ----
+      function render() {
+        const isBreak = st.mode === "break";
+        $("pill").textContent = isBreak ? "BREAK" : "WORK";
+        $("pill").className = "phase-pill " + (isBreak ? "break" : "");
+        prog.classList.toggle("break", isBreak);
+        prog.classList.toggle("paused", !st.running && st.elapsed > 0);
+        $("time").textContent = fmt(st.elapsed);
+        $("startBtn").textContent = st.running ? "Pause" : st.elapsed > 0 ? "Resume" : "Start";
+        $("breakBtn").textContent = isBreak ? "Resume Work" : "Break";
+        $("status").textContent = st.elapsed === 0 && !st.running
+          ? "Ready"
+          : (isBreak ? "On break" : "Working") + (st.running ? "" : " (paused)");
         renderStats();
-        renderRows();
-        clearInterval(ticker);
-        if (state.active) {
-          ticker = setInterval(() => { renderClock(); renderStats(); }, 1000);
+      }
+      function renderStats() {
+        const byDay = {};
+        for (const r of records) byDay[localDay(r.end)] = (byDay[localDay(r.end)] || 0) + r.seconds;
+        let today = byDay[new Date().toDateString()] || 0;
+        if (st.mode === "work") today += st.elapsed; // live
+        const totals = Object.values(byDay), days = totals.length;
+        const avg = days ? totals.reduce((a, b) => a + b, 0) / days : 0;
+        $("today").textContent = fmtShort(today);
+        $("avg").textContent = fmtShort(avg);
+        $("days").textContent = days;
+      }
+      function renderRecords() {
+        const box = $("recs");
+        box.innerHTML = "";
+        $("empty").hidden = records.length > 0;
+        for (const r of records) {
+          const div = document.createElement("div");
+          div.className = "rec";
+          const dur = document.createElement("span");
+          dur.className = "dur";
+          dur.textContent = fmtShort(r.seconds);
+          const task = document.createElement("span");
+          task.className = "task" + (r.label ? "" : " empty");
+          task.textContent = r.label || "—";
+          if (r.label) task.title = r.label;
+          const date = document.createElement("span");
+          date.className = "date";
+          date.textContent = new Date(r.end).toLocaleDateString(undefined, {
+            weekday: "short", day: "numeric", month: "short",
+          });
+          const del = document.createElement("button");
+          del.className = "del"; del.textContent = "✕"; del.title = "Delete";
+          del.onclick = async () => { const db = await api("/delete", { id: r.id }); records = db.records; renderRecords(); render(); };
+          div.append(dur, task, date, del);
+          box.appendChild(div);
         }
       }
 
-      document.getElementById("start-work").onclick = async () => {
-        const label = document.getElementById("label").value.trim();
-        state = await api("/start", { type: "work", label });
-        renderAll();
-      };
-      document.getElementById("start-break").onclick = async () => {
-        state = await api("/start", { type: "break", label: "" });
-        renderAll();
-      };
-      document.getElementById("stop").onclick = async () => {
-        state = await api("/stop", {});
-        document.getElementById("label").value = "";
-        renderAll();
-      };
-      document.getElementById("clear").onclick = async () => {
-        if (!confirm("Delete ALL records? This cannot be undone.")) return;
-        state = await api("/clear", {});
-        renderAll();
+      // ---- recording ----
+      async function recordWork() {
+        if (st.mode === "work" && st.elapsed > 0) {
+          const db = await api("/record", { seconds: st.elapsed, label: $("task").value });
+          records = db.records;
+          renderRecords();
+        }
+      }
+
+      // ---- tick ----
+      setInterval(() => {
+        if (!st.running) return;
+        st.elapsed++;
+        render();
+      }, 1000);
+
+      // ---- controls ----
+      $("startBtn").onclick = () => { st.running = !st.running; render(); };
+
+      $("breakBtn").onclick = async () => {
+        if (st.mode === "work") {
+          await recordWork();      // save the work segment
+          st.mode = "break";
+        } else {
+          st.mode = "work";        // breaks are not recorded
+        }
+        st.elapsed = 0;
+        st.running = true;
+        render();
       };
 
-      (async () => { state = await api("/state"); renderAll(); })();
+      $("clearBtn").onclick = async () => {
+        if (!confirm("Delete ALL work sessions? This cannot be undone.")) return;
+        const db = await api("/clear", {});
+        records = db.records; renderRecords(); render();
+      };
+
+      // Safety net: if you close/leave while a work segment is running, save it.
+      window.addEventListener("pagehide", () => {
+        if (st.mode === "work" && st.elapsed > 0) {
+          const blob = new Blob(
+            [JSON.stringify({ seconds: st.elapsed, label: $("task").value })],
+            { type: "application/json" }
+          );
+          navigator.sendBeacon("/api/work-timer/record", blob);
+        }
+      });
+
+      // ---- fullscreen ----
+      const stage = $("stage");
+      $("fsBtn").onclick = () => {
+        if (document.fullscreenElement) document.exitFullscreen();
+        else if (stage.requestFullscreen) stage.requestFullscreen();
+      };
+      document.addEventListener("fullscreenchange", () => {
+        const on = !!document.fullscreenElement;
+        document.body.classList.toggle("fs", on);
+        $("fsBtn").textContent = on ? "Exit Full Screen" : "Full Screen";
+      });
+
+      // ---- init ----
+      (async () => {
+        const db = await api("/state");
+        records = db.records || [];
+        renderRecords();
+        render();
+      })();
     </script>
   </body>
 </html>

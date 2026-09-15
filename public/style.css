@@ -1,28 +1,35 @@
-/* Tool Hub — dashboard shell styles */
+/* Nest Creativs Office — dashboard shell styles
+   Brand palette:
+     Obsidian Shard #080D12 · Electric Blue #0066FF · Deep Blue #002147
+     Ice Blue #B3C9E6 · White #FFFFFF                                    */
 
 :root {
-  --bg: #f5f6f8;
+  /* light theme */
+  --bg: #f3f6fb;
   --surface: #ffffff;
-  --surface-2: #eef0f4;
-  --border: #e2e5ea;
-  --text: #1a1d24;
-  --muted: #6b7280;
-  --accent: #6366f1;
+  --surface-2: #e9f0fa;
+  --border: #d3e0f0;
+  --text: #002147;
+  --muted: #5b6f8a;
+  --accent: #0066ff;
   --accent-fg: #ffffff;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.05);
+  --ice: #4c73a6;
+  --shadow: 0 1px 3px rgba(0, 33, 71, 0.06), 0 10px 28px rgba(0, 33, 71, 0.08);
   --radius: 14px;
 }
 
 :root[data-theme="dark"] {
-  --bg: #0e1016;
-  --surface: #171a22;
-  --surface-2: #1f232d;
-  --border: #2a2f3a;
-  --text: #e6e8ee;
-  --muted: #8b93a4;
-  --accent: #7c83ff;
-  --accent-fg: #0e1016;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 12px 32px rgba(0, 0, 0, 0.35);
+  /* brand dark theme (default look) */
+  --bg: #080d12;
+  --surface: #0d1621;
+  --surface-2: #0f2038;
+  --border: #1b3050;
+  --text: #ffffff;
+  --muted: #8ba3c4;
+  --accent: #0066ff;
+  --accent-fg: #ffffff;
+  --ice: #b3c9e6;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 16px 40px rgba(0, 0, 0, 0.45);
 }
 
 * {
@@ -126,15 +133,17 @@ body {
   color: var(--accent);
 }
 .tool-item .ic {
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
+  width: 24px;
+  height: 24px;
   display: grid;
   place-items: center;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   flex-shrink: 0;
-  color: #fff;
+}
+.tool-item .ic svg {
+  width: 20px;
+  height: 20px;
 }
 
 .sidebar-footer {
@@ -204,14 +213,19 @@ body {
   border-color: var(--accent);
 }
 .card .ic {
-  width: 46px;
-  height: 46px;
-  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
   display: grid;
   place-items: center;
   font-size: 22px;
   font-weight: 700;
-  color: #fff;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.card .ic svg {
+  width: 26px;
+  height: 26px;
 }
 .card h3 {
   margin: 0;

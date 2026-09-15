@@ -1,8 +1,8 @@
 {
   "name": "Notes",
   "description": "Quick notes saved to a file on your machine.",
-  "icon": "📝",
-  "color": "#ec4899",
+  "icon": "note",
+  "color": "#b3c9e6",
   "tags": "storage demo",
   "order": 40
 }

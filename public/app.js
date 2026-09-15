@@ -41,11 +41,30 @@ async function loadTools() {
   routeFromHash();
 }
 
+// Minimal line-icon set (stroke = currentColor). Keyed by tool.json "icon".
+const ICONS = {
+  check:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/><polyline points="9 11 12 14 20 6"/></svg>',
+  timer:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="7.5"/><path d="M12 13V9"/><line x1="9" y1="2.5" x2="15" y2="2.5"/><line x1="12" y1="2.5" x2="12" y2="5.5"/></svg>',
+  note:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg>',
+  plus:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+};
+
 function iconEl(tool) {
   const span = document.createElement("span");
   span.className = "ic";
-  span.style.background = tool.color || "#6366f1";
-  span.textContent = tool.icon || tool.name.slice(0, 1).toUpperCase();
+  const svg = ICONS[tool.icon];
+  if (svg) {
+    span.innerHTML = svg;
+    span.style.color = tool.color || "var(--accent)";
+  } else {
+    // fallback: text/emoji in the tool's colour
+    span.textContent = tool.icon || tool.name.slice(0, 1).toUpperCase();
+    span.style.color = tool.color || "var(--accent)";
+  }
   return span;
 }
 

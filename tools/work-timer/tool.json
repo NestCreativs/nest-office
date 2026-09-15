@@ -1,8 +1,8 @@
 {
   "name": "Work Timer",
-  "description": "Time work & breaks, keep records, see your daily average.",
-  "icon": "⏱",
-  "color": "#ef4444",
+  "description": "Count work time with breaks, per-task, & daily average.",
+  "icon": "timer",
+  "color": "#7fb0ff",
   "tags": "productivity",
   "order": 6
 }

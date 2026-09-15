@@ -3,28 +3,33 @@
    It gives you theme-aware colors, buttons, inputs, and layout helpers. */
 
 :root {
-  --bg: #f5f6f8;
-  --surface: #ffffff;
-  --surface-2: #eef0f4;
-  --border: #e2e5ea;
-  --text: #1a1d24;
-  --muted: #6b7280;
-  --accent: #6366f1;
+  /* brand dark (default) */
+  --bg: #080d12;
+  --surface: #0d1621;
+  --surface-2: #0f2038;
+  --border: #1b3050;
+  --text: #ffffff;
+  --muted: #8ba3c4;
+  --accent: #0066ff;
   --accent-fg: #ffffff;
-  --ok: #16a34a;
-  --err: #dc2626;
+  --ice: #b3c9e6;
+  --ok: #35c07e;
+  --err: #ef5a5a;
   --radius: 12px;
 }
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
   :root {
-    --bg: #0e1016;
-    --surface: #171a22;
-    --surface-2: #1f232d;
-    --border: #2a2f3a;
-    --text: #e6e8ee;
-    --muted: #8b93a4;
-    --accent: #7c83ff;
-    --accent-fg: #0e1016;
+    --bg: #f3f6fb;
+    --surface: #ffffff;
+    --surface-2: #e9f0fa;
+    --border: #d3e0f0;
+    --text: #002147;
+    --muted: #5b6f8a;
+    --accent: #0066ff;
+    --accent-fg: #ffffff;
+    --ice: #4c73a6;
+    --ok: #1b9e5a;
+    --err: #dc2626;
   }
 }
 

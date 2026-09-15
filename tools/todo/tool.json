@@ -1,8 +1,8 @@
 {
   "name": "To-Do List",
   "description": "Add, rank, tick off, and delete tasks.",
-  "icon": "✓",
-  "color": "#0ea5e9",
+  "icon": "check",
+  "color": "#0066ff",
   "tags": "productivity",
   "order": 5
 }
