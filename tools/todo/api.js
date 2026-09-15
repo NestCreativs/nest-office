@@ -67,6 +67,17 @@ module.exports = async function handle(ctx) {
     return ctx.send(200, { ok: true });
   }
 
+  // Reorder to match a full list of ids (from drag-and-drop).
+  if (ctx.method === "POST" && ctx.path === "/reorder") {
+    const ids = (ctx.body && ctx.body.ids) || [];
+    const pos = new Map(ids.map((id, i) => [id, i]));
+    tasks.sort(
+      (a, b) => (pos.has(a.id) ? pos.get(a.id) : 999) - (pos.has(b.id) ? pos.get(b.id) : 999)
+    );
+    save(tasks);
+    return ctx.send(200, { tasks });
+  }
+
   if (ctx.method === "POST" && ctx.path === "/clear-done") {
     save(tasks.filter((x) => !x.done));
     return ctx.send(200, { ok: true });

@@ -5,7 +5,7 @@
  * where the server is hosted.
  *
  * <DATA_DIR>/work-timer.json = {
- *   records: [ { id, seconds, end, label } ]   // end = epoch ms (UTC), work only
+ *   records: [ { id, seconds, breakSeconds, end, label } ]  // end = epoch ms (UTC)
  * }
  */
 const fs = require("fs");
@@ -35,9 +35,10 @@ module.exports = async function handle(ctx) {
   // Record a completed work session.
   if (ctx.method === "POST" && ctx.path === "/record") {
     const seconds = Math.max(0, Math.round(Number(ctx.body && ctx.body.seconds) || 0));
-    if (seconds < 1) return ctx.send(200, db); // ignore empty
+    const breakSeconds = Math.max(0, Math.round(Number(ctx.body && ctx.body.breakSeconds) || 0));
+    if (seconds < 1 && breakSeconds < 1) return ctx.send(200, db); // ignore empty
     const label = String((ctx.body && ctx.body.label) || "").trim().slice(0, 200);
-    db.records.unshift({ id: Date.now().toString(36), seconds, end: Date.now(), label });
+    db.records.unshift({ id: Date.now().toString(36), seconds, breakSeconds, end: Date.now(), label });
     save(db);
     return ctx.send(200, db);
   }

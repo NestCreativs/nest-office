@@ -9,14 +9,21 @@
       body { display: flex; flex-direction: column; }
       .wrap { width: 100%; }
 
-      /* ---- Timer stage ---- */
       .stage {
+        position: relative;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 18px;
+        gap: 16px;
         padding: 10px 0 26px;
       }
+      /* Break button pinned to the top-right of the timer stage */
+      .break-top {
+        position: absolute;
+        top: 0;
+        right: 0;
+      }
+
       .phase-pill {
         padding: 6px 18px;
         border-radius: 999px;
@@ -33,71 +40,62 @@
         border-color: color-mix(in srgb, var(--ice) 45%, transparent);
       }
 
-      .ring-wrap {
-        position: relative;
-        width: clamp(250px, 58vmin, 360px);
-        aspect-ratio: 1;
-      }
+      .ring-wrap { position: relative; width: clamp(240px, 56vmin, 340px); aspect-ratio: 1; }
       .ring { width: 100%; height: 100%; transform: rotate(-90deg); }
       .ring .track { fill: none; stroke: var(--surface-2); stroke-width: 12; }
-      .ring .prog {
-        fill: none;
-        stroke: var(--accent);
-        stroke-width: 12;
-        stroke-linecap: round;
-        transition: stroke 0.3s ease;
-      }
+      .ring .prog { fill: none; stroke: var(--accent); stroke-width: 12; stroke-linecap: round; transition: stroke 0.3s ease; }
       .ring .prog.break { stroke: var(--ice); }
       .ring .prog.paused { opacity: 0.4; }
       .time {
-        position: absolute;
-        inset: 0;
-        display: grid;
-        place-items: center;
-        font-size: clamp(42px, 11vmin, 70px);
-        font-weight: 800;
-        font-variant-numeric: tabular-nums;
-        letter-spacing: 1px;
+        position: absolute; inset: 0; display: grid; place-items: center;
+        font-size: clamp(40px, 10.5vmin, 66px); font-weight: 800;
+        font-variant-numeric: tabular-nums; letter-spacing: 1px;
         font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
       }
-      .status { color: var(--muted); font-size: 14px; min-height: 20px; }
+      .status { color: var(--muted); font-size: 14px; min-height: 20px; text-align: center; }
+      .totals { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+      .totals b { color: var(--text); font-weight: 700; }
+
+      .task-row { width: min(440px, 100%); }
+      select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px;
+               background: var(--surface); color: var(--text); font: inherit; }
+      select:disabled { opacity: 0.7; }
 
       .controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
       .controls .btn { min-width: 110px; }
       .btn.ghost { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
       .btn.ghost:hover { border-color: var(--accent); color: var(--accent); }
+      .btn:disabled { opacity: 0.4; cursor: default; }
 
-      .task-row { width: min(440px, 100%); }
-      .task-row input { text-align: center; }
-
-      /* ---- Panel below (stats / records) ---- */
       .panel { display: flex; flex-direction: column; gap: 18px; }
       .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
       @media (max-width: 560px) { .stats { grid-template-columns: 1fr; } }
       .stat-card { text-align: center; }
 
+      .day-head { font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+                  color: var(--muted); margin: 14px 0 8px; }
       .rec { display: flex; align-items: center; gap: 12px; padding: 11px 14px;
              border: 1px solid var(--border); border-radius: 10px; background: var(--surface); margin-bottom: 8px; }
-      .rec .dur { font-weight: 700; font-variant-numeric: tabular-nums; flex-shrink: 0; }
       .rec .task { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .rec .task.empty { color: var(--muted); }
-      .rec .date { color: var(--muted); font-size: 13px; flex-shrink: 0; }
+      .rec .dur { font-weight: 700; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+      .rec .brk { color: var(--muted); font-size: 12px; flex-shrink: 0; }
       .rec .del { border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 15px; flex-shrink: 0; }
       .rec .del:hover { color: var(--err); }
       .table-head { display: flex; justify-content: space-between; align-items: center; }
 
-      /* ---- Fullscreen ---- */
-      #stage:fullscreen { width: 100%; height: 100%; justify-content: center; background: var(--bg); gap: 26px; }
-      #stage:fullscreen .ring-wrap { width: min(70vmin, 560px); }
+      #stage:fullscreen { width: 100%; height: 100%; justify-content: center; background: var(--bg); gap: 24px; padding: 24px; }
+      #stage:fullscreen .ring-wrap { width: min(64vmin, 520px); }
       body.fs .panel, body.fs h1, body.fs .sub { display: none; }
     </style>
   </head>
   <body>
     <div class="wrap">
       <h1>Work Timer</h1>
-      <p class="sub">Count your work time in your local timezone. Add breaks whenever you like — no fixed durations.</p>
+      <p class="sub">Pick a task from your To-Do list and time it. Work and break are tracked separately, saved by day.</p>
 
       <div id="stage" class="stage">
+        <button class="btn ghost break-top" id="breakBtn" disabled>Break</button>
         <span class="phase-pill" id="pill">WORK</span>
         <div class="ring-wrap">
           <svg class="ring" viewBox="0 0 240 240">
@@ -106,15 +104,16 @@
           </svg>
           <div class="time" id="time">00:00</div>
         </div>
-        <div class="status" id="status">Ready</div>
+        <div class="status" id="status">Select a task to start</div>
+        <div class="totals" id="totals"></div>
 
         <div class="task-row">
-          <input type="text" id="task" placeholder="What are you working on?" maxlength="200" />
+          <select id="task" title="Task from your To-Do list"></select>
         </div>
 
         <div class="controls">
           <button class="btn" id="startBtn">Start</button>
-          <button class="btn ghost" id="breakBtn">Break</button>
+          <button class="btn ghost" id="endBtn" disabled>End</button>
           <button class="btn ghost" id="fsBtn">Full Screen</button>
         </div>
       </div>
@@ -137,17 +136,17 @@
 
         <div>
           <div class="table-head">
-            <h3 style="margin: 0">Work sessions</h3>
+            <h3 style="margin: 0">History</h3>
             <button class="btn ghost" id="clearBtn">Clear all</button>
           </div>
-          <div id="recs" style="margin-top: 10px"></div>
-          <p class="note" id="empty" hidden>No sessions yet — press Start to begin.</p>
+          <div id="recs" style="margin-top: 6px"></div>
+          <p class="note" id="empty" hidden>No sessions yet — pick a task and press Start.</p>
         </div>
       </div>
     </div>
 
     <script>
-      const api = (p, body) =>
+      const wt = (p, body) =>
         fetch("/api/work-timer" + p, {
           method: body ? "POST" : "GET",
           headers: { "Content-Type": "application/json" },
@@ -158,13 +157,14 @@
       const prog = $("prog");
       const C = 2 * Math.PI * 108;
       prog.style.strokeDasharray = C;
-      prog.style.strokeDashoffset = 0; // full ring (decorative, no countdown)
+      prog.style.strokeDashoffset = 0; // full ring (count-up, decorative)
 
       let records = [];
-      // mode: 'work' | 'break'; elapsed = seconds of the current segment
-      const st = { mode: "work", running: false, elapsed: 0 };
+      let todoTasks = [];
+      // mode: 'idle' | 'work' | 'break'
+      const st = { task: "", mode: "idle", running: false, workSec: 0, breakSec: 0 };
 
-      // ---- formatting (all local timezone) ----
+      // ---- formatting (local timezone) ----
       function fmt(s) {
         const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
         const mm = String(m).padStart(2, "0"), sss = String(ss).padStart(2, "0");
@@ -178,6 +178,43 @@
         return m + "m";
       }
       const localDay = (ts) => new Date(ts).toDateString();
+      function dayLabel(ts) {
+        const d = new Date(ts), today = new Date();
+        const yest = new Date(); yest.setDate(today.getDate() - 1);
+        if (d.toDateString() === today.toDateString()) return "Today";
+        if (d.toDateString() === yest.toDateString()) return "Yesterday";
+        return d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" });
+      }
+
+      // ---- To-Do task picker ----
+      async function loadTasks() {
+        try {
+          const data = await fetch("/api/todo/list").then((r) => r.json());
+          todoTasks = (data.tasks || []).filter((t) => !t.done);
+        } catch { todoTasks = []; }
+        fillTaskPicker();
+      }
+      function fillTaskPicker() {
+        if (st.mode !== "idle") return; // don't disturb an active session
+        const sel = $("task");
+        const prev = sel.value;
+        sel.innerHTML = "";
+        if (!todoTasks.length) {
+          const o = document.createElement("option");
+          o.value = ""; o.textContent = "No tasks — add some in To-Do"; o.disabled = true; o.selected = true;
+          sel.appendChild(o);
+          sel.disabled = true;
+        } else {
+          sel.disabled = false;
+          for (const t of todoTasks) {
+            const o = document.createElement("option");
+            o.value = t.id; o.textContent = t.text;
+            sel.appendChild(o);
+          }
+          if ([...sel.options].some((o) => o.value === prev)) sel.value = prev;
+        }
+        render();
+      }
 
       // ---- rendering ----
       function render() {
@@ -185,20 +222,32 @@
         $("pill").textContent = isBreak ? "BREAK" : "WORK";
         $("pill").className = "phase-pill " + (isBreak ? "break" : "");
         prog.classList.toggle("break", isBreak);
-        prog.classList.toggle("paused", !st.running && st.elapsed > 0);
-        $("time").textContent = fmt(st.elapsed);
-        $("startBtn").textContent = st.running ? "Pause" : st.elapsed > 0 ? "Resume" : "Start";
+        prog.classList.toggle("paused", !st.running && st.mode !== "idle");
+        $("time").textContent = fmt(isBreak ? st.breakSec : st.workSec);
+
+        if (st.mode === "idle") {
+          $("status").textContent = todoTasks.length ? "Select a task and press Start" : "Add a task in To-Do first";
+          $("totals").textContent = "";
+        } else {
+          $("status").textContent =
+            (isBreak ? "On break" : "Working") + (st.running ? "" : " (paused)") +
+            (st.task ? " — " + st.task : "");
+          $("totals").innerHTML = "Work <b>" + fmt(st.workSec) + "</b> · Break <b>" + fmt(st.breakSec) + "</b>";
+        }
+
+        $("startBtn").textContent = st.mode === "idle" ? "Start" : st.running ? "Pause" : "Resume";
+        $("startBtn").disabled = st.mode === "idle" && todoTasks.length === 0;
         $("breakBtn").textContent = isBreak ? "Resume Work" : "Break";
-        $("status").textContent = st.elapsed === 0 && !st.running
-          ? "Ready"
-          : (isBreak ? "On break" : "Working") + (st.running ? "" : " (paused)");
+        $("breakBtn").disabled = st.mode === "idle";
+        $("endBtn").disabled = st.mode === "idle";
+        $("task").disabled = st.mode !== "idle";
         renderStats();
       }
       function renderStats() {
         const byDay = {};
         for (const r of records) byDay[localDay(r.end)] = (byDay[localDay(r.end)] || 0) + r.seconds;
         let today = byDay[new Date().toDateString()] || 0;
-        if (st.mode === "work") today += st.elapsed; // live
+        if (st.mode !== "idle") today += st.workSec; // live
         const totals = Object.values(byDay), days = totals.length;
         const avg = days ? totals.reduce((a, b) => a + b, 0) / days : 0;
         $("today").textContent = fmtShort(today);
@@ -209,71 +258,86 @@
         const box = $("recs");
         box.innerHTML = "";
         $("empty").hidden = records.length > 0;
+        let currentDay = null;
         for (const r of records) {
+          const day = localDay(r.end);
+          if (day !== currentDay) {
+            currentDay = day;
+            const h = document.createElement("div");
+            h.className = "day-head";
+            h.textContent = dayLabel(r.end);
+            box.appendChild(h);
+          }
           const div = document.createElement("div");
           div.className = "rec";
           const dur = document.createElement("span");
-          dur.className = "dur";
-          dur.textContent = fmtShort(r.seconds);
+          dur.className = "dur"; dur.textContent = fmtShort(r.seconds);
           const task = document.createElement("span");
           task.className = "task" + (r.label ? "" : " empty");
           task.textContent = r.label || "—";
           if (r.label) task.title = r.label;
-          const date = document.createElement("span");
-          date.className = "date";
-          date.textContent = new Date(r.end).toLocaleDateString(undefined, {
-            weekday: "short", day: "numeric", month: "short",
-          });
+          const brk = document.createElement("span");
+          brk.className = "brk";
+          brk.textContent = r.breakSeconds ? "break " + fmtShort(r.breakSeconds) : "";
           const del = document.createElement("button");
           del.className = "del"; del.textContent = "✕"; del.title = "Delete";
-          del.onclick = async () => { const db = await api("/delete", { id: r.id }); records = db.records; renderRecords(); render(); };
-          div.append(dur, task, date, del);
+          del.onclick = async () => { const db = await wt("/delete", { id: r.id }); records = db.records; renderRecords(); render(); };
+          div.append(dur, task, brk, del);
           box.appendChild(div);
-        }
-      }
-
-      // ---- recording ----
-      async function recordWork() {
-        if (st.mode === "work" && st.elapsed > 0) {
-          const db = await api("/record", { seconds: st.elapsed, label: $("task").value });
-          records = db.records;
-          renderRecords();
         }
       }
 
       // ---- tick ----
       setInterval(() => {
         if (!st.running) return;
-        st.elapsed++;
+        if (st.mode === "work") st.workSec++;
+        else if (st.mode === "break") st.breakSec++;
         render();
       }, 1000);
 
       // ---- controls ----
-      $("startBtn").onclick = () => { st.running = !st.running; render(); };
-
-      $("breakBtn").onclick = async () => {
-        if (st.mode === "work") {
-          await recordWork();      // save the work segment
-          st.mode = "break";
+      $("startBtn").onclick = () => {
+        if (st.mode === "idle") {
+          const sel = $("task");
+          if (!sel.value) return;
+          st.task = sel.selectedOptions[0]?.textContent || "";
+          st.mode = "work";
+          st.running = true;
         } else {
-          st.mode = "work";        // breaks are not recorded
+          st.running = !st.running; // pause / resume current phase
         }
-        st.elapsed = 0;
+        render();
+      };
+
+      $("breakBtn").onclick = () => {
+        if (st.mode === "idle") return;
+        st.mode = st.mode === "work" ? "break" : "work"; // the other counter freezes automatically
         st.running = true;
         render();
       };
 
+      $("endBtn").onclick = async () => {
+        if (st.mode === "idle") return;
+        if (st.workSec > 0 || st.breakSec > 0) {
+          const db = await wt("/record", { seconds: st.workSec, breakSeconds: st.breakSec, label: st.task });
+          records = db.records;
+          renderRecords();
+        }
+        st.mode = "idle"; st.running = false; st.workSec = 0; st.breakSec = 0; st.task = "";
+        fillTaskPicker();
+      };
+
       $("clearBtn").onclick = async () => {
-        if (!confirm("Delete ALL work sessions? This cannot be undone.")) return;
-        const db = await api("/clear", {});
+        if (!confirm("Delete ALL history? This cannot be undone.")) return;
+        const db = await wt("/clear", {});
         records = db.records; renderRecords(); render();
       };
 
-      // Safety net: if you close/leave while a work segment is running, save it.
+      // Safety net: save an in-progress session if the tab is closed.
       window.addEventListener("pagehide", () => {
-        if (st.mode === "work" && st.elapsed > 0) {
+        if (st.mode !== "idle" && (st.workSec > 0 || st.breakSec > 0)) {
           const blob = new Blob(
-            [JSON.stringify({ seconds: st.elapsed, label: $("task").value })],
+            [JSON.stringify({ seconds: st.workSec, breakSeconds: st.breakSec, label: st.task })],
             { type: "application/json" }
           );
           navigator.sendBeacon("/api/work-timer/record", blob);
@@ -292,12 +356,16 @@
         $("fsBtn").textContent = on ? "Exit Full Screen" : "Full Screen";
       });
 
+      // keep the task list fresh (picks up new To-Do tasks automatically)
+      setInterval(loadTasks, 4000);
+      document.addEventListener("visibilitychange", () => { if (!document.hidden) loadTasks(); });
+
       // ---- init ----
       (async () => {
-        const db = await api("/state");
+        const db = await wt("/state");
         records = db.records || [];
         renderRecords();
-        render();
+        await loadTasks();
       })();
     </script>
   </body>

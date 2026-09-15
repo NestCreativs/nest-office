@@ -21,6 +21,20 @@
         margin-bottom: 8px;
       }
       li.task.done .text { text-decoration: line-through; color: var(--muted); }
+      li.task.dragging { opacity: 0.4; border-color: var(--accent); }
+      li.task.drag-over-top { box-shadow: 0 -2px 0 var(--accent); }
+
+      .grip {
+        cursor: grab;
+        color: var(--muted);
+        font-size: 16px;
+        line-height: 1;
+        padding: 2px 4px;
+        user-select: none;
+        flex-shrink: 0;
+      }
+      .grip:hover { color: var(--text); }
+      li.task.dragging .grip { cursor: grabbing; }
 
       .check {
         width: 22px; height: 22px; flex-shrink: 0;
@@ -30,15 +44,13 @@
       }
       .task.done .check { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
 
-      .text { flex: 1; cursor: text; outline: none; padding: 2px 0; }
-      .rank { display: flex; flex-direction: column; gap: 2px; }
+      .text { flex: 1; cursor: text; outline: none; padding: 2px 0; min-width: 0; }
       .icon-btn {
         border: none; background: transparent; color: var(--muted);
         cursor: pointer; font-size: 14px; line-height: 1; padding: 2px 5px; border-radius: 6px;
+        flex-shrink: 0;
       }
-      .icon-btn:hover { background: var(--surface-2); color: var(--text); }
       .icon-btn.del:hover { color: var(--err); }
-      .icon-btn:disabled { opacity: .25; cursor: default; background: transparent; }
 
       .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; }
     </style>
@@ -46,7 +58,7 @@
   <body>
     <div class="wrap" style="max-width: 620px">
       <h1>✓ To-Do</h1>
-      <p class="sub">Drag-free ranking with the arrows. Click a task to edit it.</p>
+      <p class="sub">Drag the ⠿ handle to reorder. Click a task to edit it. Tasks appear in the Work Timer automatically.</p>
 
       <div class="add-row">
         <input type="text" id="new" placeholder="Add a task and press Enter…" autofocus />
@@ -82,9 +94,18 @@
         if (!tasks.length) {
           list.innerHTML = '<p class="note">Nothing here yet. Add your first task above.</p>';
         }
-        tasks.forEach((t, i) => {
+        tasks.forEach((t) => {
           const li = document.createElement("li");
           li.className = "task" + (t.done ? " done" : "");
+          li.dataset.id = t.id;
+
+          // drag handle (only the handle starts a drag, so text stays editable)
+          const grip = document.createElement("span");
+          grip.className = "grip";
+          grip.textContent = "⠿";
+          grip.title = "Drag to reorder";
+          grip.addEventListener("mousedown", () => { li.draggable = true; });
+          grip.addEventListener("mouseup", () => { li.draggable = false; });
 
           const check = document.createElement("div");
           check.className = "check";
@@ -104,25 +125,21 @@
             else text.textContent = t.text;
           };
 
-          const rank = document.createElement("div");
-          rank.className = "rank";
-          const up = document.createElement("button");
-          up.className = "icon-btn"; up.textContent = "▲"; up.title = "Move up";
-          up.disabled = i === 0;
-          up.onclick = async () => { await api("/move", { id: t.id, dir: "up" }); refresh(); };
-          const down = document.createElement("button");
-          down.className = "icon-btn"; down.textContent = "▼"; down.title = "Move down";
-          down.disabled = i === tasks.length - 1;
-          down.onclick = async () => { await api("/move", { id: t.id, dir: "down" }); refresh(); };
-          rank.appendChild(up); rank.appendChild(down);
-
           const del = document.createElement("button");
           del.className = "icon-btn del"; del.textContent = "✕"; del.title = "Delete";
           del.onclick = async () => { await api("/delete", { id: t.id }); refresh(); };
 
+          // drag events
+          li.addEventListener("dragstart", () => li.classList.add("dragging"));
+          li.addEventListener("dragend", async () => {
+            li.classList.remove("dragging");
+            li.draggable = false;
+            await persistOrder();
+          });
+
+          li.appendChild(grip);
           li.appendChild(check);
           li.appendChild(text);
-          li.appendChild(rank);
           li.appendChild(del);
           list.appendChild(li);
         });
@@ -130,6 +147,37 @@
         const done = tasks.filter((t) => t.done).length;
         document.getElementById("count").textContent =
           tasks.length ? `${done} of ${tasks.length} done` : "";
+      }
+
+      // reorder the dragged item within the list based on cursor position
+      list.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        const dragging = list.querySelector(".dragging");
+        if (!dragging) return;
+        const after = getDragAfter(e.clientY);
+        if (after == null) list.appendChild(dragging);
+        else list.insertBefore(dragging, after);
+      });
+
+      function getDragAfter(y) {
+        const items = [...list.querySelectorAll(".task:not(.dragging)")];
+        return items.reduce(
+          (closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) return { offset, element: child };
+            return closest;
+          },
+          { offset: -Infinity, element: null }
+        ).element;
+      }
+
+      async function persistOrder() {
+        const ids = [...list.querySelectorAll(".task")].map((li) => li.dataset.id);
+        // keep local order in sync, then save
+        tasks.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
+        const res = await api("/reorder", { ids });
+        if (res && res.tasks) tasks = res.tasks;
       }
 
       async function addTask() {
