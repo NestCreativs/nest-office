@@ -109,6 +109,9 @@ body {
 .app.collapsed .sidebar { margin-left: -264px; }
 .app.collapsed .sidebar-open { display: inline-grid; }
 .sidebar-open { transition: opacity 0.2s ease; }
+/* make room for the floating reopen button so it doesn't overlap content */
+.app.collapsed .tool-bar { padding-left: 58px; }
+.app.collapsed .home-head { padding-left: 52px; }
 .brand-mark {
   width: 34px;
   height: 34px;
