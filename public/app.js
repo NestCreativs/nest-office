@@ -28,6 +28,19 @@ els.themeToggle.addEventListener("click", () => {
   localStorage.setItem("toolhub-theme", next);
 });
 
+// ---- Sidebar collapse -----------------------------------------------------
+const appEl = document.querySelector(".app");
+if (localStorage.getItem("toolhub-sidebar") === "collapsed") appEl.classList.add("collapsed");
+function toggleSidebar() {
+  appEl.classList.toggle("collapsed");
+  localStorage.setItem(
+    "toolhub-sidebar",
+    appEl.classList.contains("collapsed") ? "collapsed" : "open"
+  );
+}
+document.getElementById("sidebar-toggle").addEventListener("click", toggleSidebar);
+document.getElementById("sidebar-open").addEventListener("click", toggleSidebar);
+
 // ---- Load tools -----------------------------------------------------------
 async function loadTools() {
   try {

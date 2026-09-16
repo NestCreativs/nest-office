@@ -49,13 +49,16 @@ body {
 }
 
 .app {
-  display: grid;
-  grid-template-columns: 264px 1fr;
+  display: flex;
   height: 100vh;
+  overflow: hidden;
 }
 
 /* ---------- Sidebar ---------- */
 .sidebar {
+  width: 264px;
+  flex-shrink: 0;
+  transition: margin-left 0.28s ease;
   display: flex;
   flex-direction: column;
   background: var(--surface);
@@ -71,6 +74,41 @@ body {
   gap: 10px;
   padding: 4px 8px;
 }
+
+/* ---- Sidebar collapse toggle ---- */
+.sidebar-toggle,
+.sidebar-open {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+  border-radius: 9px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.sidebar-toggle { margin-left: auto; }
+.sidebar-toggle:hover,
+.sidebar-open:hover { border-color: var(--accent); color: var(--accent); }
+.sidebar-toggle svg,
+.sidebar-open svg { width: 18px; height: 18px; }
+
+/* floating reopen button — only visible when collapsed */
+.sidebar-open {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 50;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  display: none;
+}
+/* slide the sidebar off to the left (animated via margin-left) */
+.app.collapsed .sidebar { margin-left: -264px; }
+.app.collapsed .sidebar-open { display: inline-grid; }
+.sidebar-open { transition: opacity 0.2s ease; }
 .brand-mark {
   width: 34px;
   height: 34px;
@@ -172,6 +210,7 @@ body {
 
 /* ---------- Main ---------- */
 .main {
+  flex: 1;
   min-width: 0;
   min-height: 0;
   overflow: auto;
@@ -282,9 +321,6 @@ body {
 
 /* ---------- Responsive ---------- */
 @media (max-width: 760px) {
-  .app {
-    grid-template-columns: 1fr;
-  }
   .sidebar {
     display: none;
   }
