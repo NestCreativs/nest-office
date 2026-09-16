@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Onboarding</title>
+    <link rel="stylesheet" href="/tool-kit.css" />
+    <style>
+      .wrap { max-width: 820px; }
+
+      /* ---- Top tabs (centered) ---- */
+      .tabs {
+        display: flex;
+        width: fit-content;
+        margin: 0 auto 24px;
+        gap: 4px;
+        padding: 4px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+      }
+      .tab {
+        border: none; background: transparent; color: var(--muted);
+        padding: 8px 22px; border-radius: 9px; cursor: pointer;
+        font: inherit; font-weight: 600; font-size: 14px;
+        transition: color 0.15s ease, background 0.15s ease;
+      }
+      .tab:hover { color: var(--text); }
+      .tab.active { background: var(--accent); color: var(--accent-fg); }
+
+      .panel { display: none; }
+      .panel.active { display: block; animation: fade 0.2s ease; }
+      @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+      .intro { color: var(--muted); margin: 0 0 20px; }
+
+      /* ---- Guide step cards ---- */
+      .step {
+        position: relative; overflow: hidden;
+        background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+        padding: 18px 20px; margin-bottom: 14px;
+        transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+      }
+      .step::before {
+        content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+        background: var(--accent); transform: scaleY(0); transform-origin: top; transition: transform 0.22s ease;
+      }
+      .step:hover {
+        transform: translateY(-2px);
+        border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+        box-shadow: 0 8px 26px color-mix(in srgb, var(--accent) 20%, transparent);
+      }
+      .step:hover::before { transform: scaleY(1); }
+      .step-head { display: flex; align-items: center; gap: 12px; }
+      .step-num {
+        width: 30px; height: 30px; flex-shrink: 0; border-radius: 9px; display: grid; place-items: center;
+        font-weight: 800; font-size: 14px;
+        background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent);
+        border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+      }
+      .step-title { font-size: 16px; font-weight: 700; }
+      .step-body { color: var(--muted); margin: 12px 0 0; line-height: 1.6; font-size: 14.5px; }
+      .step-body a { color: var(--accent); text-decoration: none; }
+      .step-body a:hover { text-decoration: underline; }
+      .pill {
+        display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .04em;
+        text-transform: uppercase; padding: 3px 9px; border-radius: 999px;
+        background: color-mix(in srgb, var(--ice) 16%, transparent); color: var(--ice); margin-left: auto;
+      }
+      .pill.gate { background: color-mix(in srgb, #ef5a5a 18%, transparent); color: #ff8b8b; }
+
+      .tpl { margin-top: 14px; }
+      .tpl-toggle {
+        display: inline-flex; align-items: center; gap: 8px;
+        border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+        padding: 8px 14px; border-radius: 9px; cursor: pointer; font: inherit; font-size: 13.5px; font-weight: 600;
+        transition: border-color 0.15s ease, color 0.15s ease;
+      }
+      .tpl-toggle:hover { border-color: var(--accent); color: var(--accent); }
+      .tpl-toggle .chev { transition: transform 0.2s ease; }
+      .tpl.open .tpl-toggle .chev { transform: rotate(180deg); }
+      .tpl-body { display: none; margin-top: 12px; }
+      .tpl.open .tpl-body { display: block; animation: fade 0.2s ease; }
+      .tpl-box { position: relative; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+      pre.tpl-text {
+        margin: 0; white-space: pre-wrap; word-wrap: break-word;
+        font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 13px; line-height: 1.6; color: var(--text);
+      }
+      .copy {
+        position: absolute; top: 10px; right: 10px;
+        border: 1px solid var(--border); background: var(--surface); color: var(--text);
+        padding: 6px 12px; border-radius: 8px; cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 600;
+        transition: border-color 0.15s ease, color 0.15s ease;
+      }
+      .copy:hover { border-color: var(--accent); color: var(--accent); }
+      .copy.done { border-color: var(--ok); color: var(--ok); }
+
+      /* ---- Entry panel ---- */
+      .toolbar { display: flex; gap: 10px; margin-bottom: 18px; }
+      .toolbar input[type="search"] { flex: 1; }
+
+      .form-card {
+        background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+        padding: 20px; margin-bottom: 22px; animation: fade 0.2s ease;
+      }
+      .form-card h3 { margin: 0 0 16px; font-size: 16px; }
+      .fgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+      @media (max-width: 620px) { .fgrid { grid-template-columns: 1fr; } }
+      .field.full { grid-column: 1 / -1; }
+      .field label { display: block; font-size: 13px; color: var(--muted); margin: 0 0 6px; }
+      .field .req { color: var(--accent); }
+      .form-actions { display: flex; gap: 10px; margin-top: 18px; }
+
+      /* entry cards */
+      .entry {
+        position: relative; overflow: hidden;
+        background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+        padding: 15px 16px; margin-bottom: 10px;
+        transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      }
+      .entry:hover {
+        transform: translateY(-2px);
+        border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+        box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 16%, transparent);
+      }
+      .entry-top { display: flex; align-items: center; gap: 10px; }
+      .entry-name { font-weight: 700; font-size: 15px; }
+      .entry-actions { margin-left: auto; display: flex; gap: 6px; }
+      .mini {
+        border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+        padding: 5px 11px; border-radius: 8px; cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 600;
+        transition: border-color 0.15s ease, color 0.15s ease;
+      }
+      .mini:hover { border-color: var(--accent); color: var(--accent); }
+      .mini.del:hover { border-color: var(--err); color: var(--err); }
+      .entry-meta { color: var(--muted); font-size: 13px; margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+      .entry-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+      .chip {
+        font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+        background: var(--surface-2); color: var(--muted); border: 1px solid var(--border);
+      }
+      .chip.yes { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); border-color: transparent; }
+      .badge {
+        font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; letter-spacing: .03em;
+        border: 1px solid transparent;
+      }
+      .badge.onboarding { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+      .badge.active { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+      .badge.paused { background: color-mix(in srgb, #f5a623 20%, transparent); color: #f5b74e; }
+      .badge.churned { background: color-mix(in srgb, var(--err) 18%, transparent); color: #ff8b8b; }
+      .entry-notes { color: var(--muted); font-size: 13px; margin-top: 10px; line-height: 1.5; white-space: pre-wrap; }
+
+      .placeholder { text-align: center; color: var(--muted); padding: 60px 20px; }
+      .placeholder .ph-icon { font-size: 34px; margin-bottom: 10px; opacity: .6; }
+
+      /* ---- Data table (read-only) ---- */
+      .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+      table.data-table { width: 100%; border-collapse: collapse; font-size: 13px; white-space: nowrap; }
+      table.data-table th, table.data-table td {
+        text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border);
+      }
+      table.data-table th {
+        color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+        background: var(--surface-2); position: sticky; top: 0;
+      }
+      table.data-table tbody tr:hover td { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+      table.data-table td.name { font-weight: 700; }
+      table.data-table .st { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
+      .st.onboarding { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+      .st.active { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+      .st.paused { background: color-mix(in srgb, #f5a623 20%, transparent); color: #f5b74e; }
+      .st.churned { background: color-mix(in srgb, var(--err) 18%, transparent); color: #ff8b8b; }
+
+      /* ---- Print (Save as PDF) ---- */
+      #printArea { display: none; }
+      @media print {
+        .wrap { display: none !important; }
+        #printArea { display: block !important; color: #000; background: #fff; }
+        #printArea h2 { margin: 0 0 2px; font-size: 18px; }
+        #printArea .meta { color: #555; font-size: 12px; margin: 0 0 14px; }
+        #printArea table { width: 100%; border-collapse: collapse; font-size: 10px; }
+        #printArea th, #printArea td { border: 1px solid #999; padding: 4px 6px; text-align: left; }
+        #printArea th { background: #eee; }
+        @page { size: landscape; margin: 12mm; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Onboarding</h1>
+      <p class="sub">Everything for bringing a new client on board.</p>
+
+      <div class="tabs">
+        <button class="tab active" data-tab="guide">Guide</button>
+        <button class="tab" data-tab="entry">Entry</button>
+        <button class="tab" data-tab="data">Data</button>
+      </div>
+
+      <!-- ============ GUIDE ============ -->
+      <section class="panel active" id="guide">
+        <p class="intro">
+          The step-by-step process for onboarding a new client. Follow each step in order.
+          Where a template exists, open it, copy it, fill in the [brackets], and send.
+        </p>
+
+        <div class="step">
+          <div class="step-head"><span class="step-num">1</span><span class="step-title">Send the Welcome Message</span></div>
+          <p class="step-body">Once a client agrees to start (payment confirmed), send this message via WhatsApp.</p>
+          <div class="tpl">
+            <button class="tpl-toggle">Template <span class="chev">▾</span></button>
+            <div class="tpl-body">
+              <div class="tpl-box">
+                <button class="copy">Copy</button>
+<pre class="tpl-text">Hey [Name], welcome to Nest Creativs! Excited to start working on your content.
+
+Here's how this works: you're on the 8 videos/month plan (short-form edits + thumbnails), with 2 rounds of revisions per video. No contracts, no lock-in, you can pause or cancel anytime, we just ask for a heads up before the next cycle starts.
+
+Two quick things to kick things off:
+
+1. Fill out this short form so we understand your brand, audience, and style: https://forms.gle/JdDQ3ojTrMXZEvxM7
+2. Drop the link of the raw footage here in the chat.
+
+Send footage over whenever you shoot it, we'll batch and edit as it comes in rather than waiting for everything at once. Let's get started!</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-head"><span class="step-num">2</span><span class="step-title">Send the Kickoff Form</span></div>
+          <p class="step-body">
+            Share the kickoff form link (same link as in the welcome message, or send separately if the
+            client asks for it again). The form collects: contact info, brand and positioning, target
+            audience, content style and references, footage and logistics, and non-negotiables including
+            any brokerage compliance requirements.
+            <br /><br />Mark <strong>"Kickoff form sent"</strong> as done in the Entry panel once sent.
+          </p>
+          <div class="tpl">
+            <button class="tpl-toggle">Form link <span class="chev">▾</span></button>
+            <div class="tpl-body">
+              <div class="tpl-box">
+                <button class="copy">Copy</button>
+<pre class="tpl-text">https://forms.gle/JdDQ3ojTrMXZEvxM7</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-head"><span class="step-num">3</span><span class="step-title">Confirm Payment Received</span><span class="pill gate">Gate</span></div>
+          <p class="step-body">
+            Do not proceed past this step until payment has landed. Log the amount and date. This is the
+            actual gate before any onboarding work begins — a client should not move to Active status
+            without this confirmed.
+          </p>
+        </div>
+
+        <div class="step">
+          <div class="step-head"><span class="step-num">4</span><span class="step-title">Set Up the Footage Folder</span></div>
+          <p class="step-body">
+            Create a dedicated Frame.io folder for the client (naming convention: client name). Share the
+            folder link with the client once the edited batch is ready.
+          </p>
+        </div>
+
+        <div class="step">
+          <div class="step-head"><span class="step-num">5</span><span class="step-title">Begin Editing</span></div>
+          <p class="step-body">
+            Hand off to the regular production and delivery workflow (tracked separately in Excel — video
+            counts, revisions, and payment cycles are not tracked in this tool).
+          </p>
+        </div>
+      </section>
+
+      <!-- ============ ENTRY ============ -->
+      <section class="panel" id="entry">
+        <div class="toolbar">
+          <input type="search" id="search" placeholder="Search clients by name, business, status…" autocomplete="off" />
+          <button class="btn" id="newBtn">＋ New entry</button>
+        </div>
+
+        <!-- Add / Edit form -->
+        <form class="form-card" id="entryForm" hidden>
+          <h3 id="formTitle">New entry</h3>
+          <div class="fgrid">
+            <div class="field"><label>Client name <span class="req">*</span></label>
+              <input type="text" id="clientName" required /></div>
+            <div class="field"><label>Business or brokerage name <span class="req">*</span></label>
+              <input type="text" id="business" required /></div>
+            <div class="field"><label>WhatsApp number <span class="req">*</span></label>
+              <input type="tel" id="whatsapp" required /></div>
+            <div class="field"><label>Email address <span class="req">*</span></label>
+              <input type="email" id="email" required /></div>
+            <div class="field"><label>Preferred contact channel <span class="req">*</span></label>
+              <select id="channel" required>
+                <option value="" disabled selected>Select…</option>
+                <option>WhatsApp</option><option>Email</option>
+              </select></div>
+            <div class="field"><label>Number of videos agreed <span class="req">*</span></label>
+              <input type="number" id="videos" min="1" required /></div>
+            <div class="field"><label>Monthly rate <span class="req">*</span></label>
+              <input type="text" id="rate" placeholder="e.g. $500" required /></div>
+            <div class="field"><label>Start date <span class="req">*</span></label>
+              <input type="date" id="startDate" required /></div>
+            <div class="field"><label>Upfront taken <span class="note">(optional)</span></label>
+              <input type="text" id="upfront" placeholder="e.g. $250" /></div>
+            <div class="field"><label>Outstanding <span class="note">(optional)</span></label>
+              <input type="text" id="outstanding" placeholder="e.g. $250 — leave blank if paid in full" /></div>
+            <div class="field"><label>Status <span class="req">*</span></label>
+              <select id="status" required>
+                <option value="" disabled selected>Select…</option>
+                <option>Onboarding</option><option>Active</option><option>Paused</option><option>Churned</option>
+              </select></div>
+            <div class="field"><label>Acquisition source <span class="req">*</span></label>
+              <input type="text" id="source" placeholder="cold call, Instagram DM, referral…" required /></div>
+            <div class="field"><label>Welcome message sent <span class="req">*</span></label>
+              <select id="welcomeSent" required>
+                <option value="" disabled selected>Select…</option>
+                <option>Yes</option><option>No</option>
+              </select></div>
+            <div class="field"><label>Kickoff form sent <span class="req">*</span></label>
+              <select id="kickoffSent" required>
+                <option value="" disabled selected>Select…</option>
+                <option>Yes</option><option>No</option>
+              </select></div>
+            <div class="field full"><label>Notes</label>
+              <textarea id="notes" placeholder="Free text (optional)" style="min-height: 90px"></textarea></div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn" id="saveBtn">Save entry</button>
+            <button type="button" class="btn secondary" id="cancelBtn">Cancel</button>
+          </div>
+        </form>
+
+        <div id="entryList"></div>
+        <p class="note" id="entryEmpty" hidden>No entries yet — press “＋ New entry” to add your first client.</p>
+      </section>
+
+      <!-- ============ DATA (read-only) ============ -->
+      <section class="panel" id="data">
+        <div class="toolbar">
+          <input type="search" id="dataSearch" placeholder="Search saved clients…" autocomplete="off" />
+          <button class="btn secondary" id="dlExcel">⬇ Excel</button>
+          <button class="btn secondary" id="dlPdf">⬇ PDF</button>
+        </div>
+        <div class="table-scroll">
+          <table class="data-table" id="dataTable"></table>
+        </div>
+        <p class="note" id="dataEmpty" hidden>No entries yet — add clients in the Entry tab and they'll appear here.</p>
+      </section>
+    </div>
+
+    <div id="printArea"></div>
+
+    <script>
+      const api = (p, body) =>
+        fetch("/api/onboarding" + p, {
+          method: body ? "POST" : "GET",
+          headers: { "Content-Type": "application/json" },
+          body: body ? JSON.stringify(body) : undefined,
+        }).then((r) => r.json());
+      const $ = (id) => document.getElementById(id);
+
+      // ---- Tabs ----
+      document.querySelectorAll(".tab").forEach((tab) => {
+        tab.onclick = () => {
+          document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+          document.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
+          tab.classList.add("active");
+          $(tab.dataset.tab).classList.add("active");
+          if (tab.dataset.tab === "data" || tab.dataset.tab === "entry") loadEntries(); // stay in sync
+        };
+      });
+
+      // ---- Guide dropdowns + copy ----
+      document.querySelectorAll(".tpl-toggle").forEach((btn) => {
+        btn.onclick = () => btn.closest(".tpl").classList.toggle("open");
+      });
+      document.querySelectorAll(".copy").forEach((btn) => {
+        btn.onclick = async () => {
+          const text = btn.parentElement.querySelector(".tpl-text").textContent;
+          try {
+            await navigator.clipboard.writeText(text);
+            btn.textContent = "Copied ✓"; btn.classList.add("done");
+            setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("done"); }, 1600);
+          } catch { btn.textContent = "Copy failed"; setTimeout(() => (btn.textContent = "Copy"), 1600); }
+        };
+      });
+
+      // ---- Entry panel ----
+      const FIELDS = ["clientName","business","whatsapp","email","channel","videos","rate","upfront","outstanding","startDate","status","source","notes","welcomeSent","kickoffSent"];
+      let entries = [];
+      let editingId = null;
+
+      function esc(s) { return String(s || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+      async function loadEntries() {
+        const db = await api("/entries");
+        entries = db.entries || [];
+        refresh();
+      }
+      function refresh() { renderList(); renderData(); }
+
+      function fmtDate(s) {
+        if (!s) return "";
+        const d = new Date(s + "T00:00:00");
+        return isNaN(d) ? s : d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+      }
+
+      function renderList() {
+        const q = $("search").value.trim().toLowerCase();
+        const box = $("entryList");
+        box.innerHTML = "";
+        const list = entries.filter((e) =>
+          !q || [e.clientName, e.business, e.email, e.whatsapp, e.status, e.source, e.notes]
+            .some((v) => String(v || "").toLowerCase().includes(q))
+        );
+        $("entryEmpty").hidden = entries.length > 0;
+        if (entries.length && !list.length) {
+          box.innerHTML = '<p class="note">No matches.</p>';
+          return;
+        }
+        for (const e of list) {
+          const div = document.createElement("div");
+          div.className = "entry";
+          const status = (e.status || "").toLowerCase();
+          div.innerHTML =
+            '<div class="entry-top">' +
+              '<span class="entry-name">' + esc(e.clientName) + "</span>" +
+              (e.status ? '<span class="badge ' + status + '">' + esc(e.status) + "</span>" : "") +
+              '<span class="entry-actions">' +
+                '<button class="mini edit">Edit</button>' +
+                '<button class="mini del">Delete</button>' +
+              "</span>" +
+            "</div>" +
+            '<div class="entry-meta">' +
+              (e.business ? "<span>🏢 " + esc(e.business) + "</span>" : "") +
+              (e.channel ? "<span>💬 " + esc(e.channel) + "</span>" : "") +
+              (e.whatsapp ? "<span>📱 " + esc(e.whatsapp) + "</span>" : "") +
+              (e.email ? "<span>✉ " + esc(e.email) + "</span>" : "") +
+              (e.videos ? "<span>🎬 " + esc(e.videos) + " videos</span>" : "") +
+              (e.rate ? "<span>💰 " + esc(e.rate) + "</span>" : "") +
+              (e.upfront ? "<span>💵 " + esc(e.upfront) + " upfront</span>" : "") +
+              (e.outstanding ? "<span>⏳ " + esc(e.outstanding) + " outstanding</span>" : "") +
+              (e.startDate ? "<span>📅 " + esc(fmtDate(e.startDate)) + "</span>" : "") +
+              (e.source ? "<span>🎯 " + esc(e.source) + "</span>" : "") +
+            "</div>" +
+            '<div class="entry-chips">' +
+              '<span class="chip ' + (e.welcomeSent === "Yes" ? "yes" : "") + '">Welcome ' + (e.welcomeSent || "—") + "</span>" +
+              '<span class="chip ' + (e.kickoffSent === "Yes" ? "yes" : "") + '">Kickoff ' + (e.kickoffSent || "—") + "</span>" +
+            "</div>" +
+            (e.notes ? '<div class="entry-notes">' + esc(e.notes) + "</div>" : "");
+          div.querySelector(".edit").onclick = () => openForm(e);
+          div.querySelector(".del").onclick = async () => {
+            if (!confirm("Delete " + (e.clientName || "this entry") + "?")) return;
+            const db = await api("/delete", { id: e.id });
+            entries = db.entries; refresh();
+          };
+          box.appendChild(div);
+        }
+      }
+
+      function openForm(entry) {
+        editingId = entry ? entry.id : null;
+        $("formTitle").textContent = entry ? "Edit entry" : "New entry";
+        for (const f of FIELDS) $(f).value = entry ? (entry[f] || "") : "";
+        $("entryForm").hidden = false;
+        $("entryForm").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      function closeForm() {
+        $("entryForm").hidden = true;
+        editingId = null;
+        $("entryForm").reset();
+      }
+
+      $("newBtn").onclick = () => openForm(null);
+      $("cancelBtn").onclick = closeForm;
+      $("search").addEventListener("input", renderList);
+
+      $("entryForm").addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        if (!$("entryForm").reportValidity()) return;
+        const body = {};
+        for (const f of FIELDS) body[f] = $(f).value;
+        let db;
+        if (editingId) { body.id = editingId; db = await api("/update", body); }
+        else db = await api("/entry", body);
+        entries = db.entries;
+        closeForm();
+        refresh();
+      });
+
+      // ---- Data panel (read-only view + downloads) ----
+      const COLS = [
+        ["clientName", "Client"], ["business", "Business"], ["whatsapp", "WhatsApp"],
+        ["email", "Email"], ["channel", "Channel"], ["videos", "Videos"], ["rate", "Rate"],
+        ["upfront", "Upfront"], ["outstanding", "Outstanding"], ["startDate", "Start date"],
+        ["status", "Status"], ["source", "Source"], ["welcomeSent", "Welcome sent"],
+        ["kickoffSent", "Kickoff sent"], ["notes", "Notes"],
+      ];
+      const cellVal = (e, key) => (key === "startDate" ? fmtDate(e[key]) : (e[key] || ""));
+
+      function currentDataRows() {
+        const q = $("dataSearch").value.trim().toLowerCase();
+        return entries.filter((e) =>
+          !q || COLS.some(([k]) => String(e[k] || "").toLowerCase().includes(q))
+        );
+      }
+
+      function renderData() {
+        const table = $("dataTable");
+        const rows = currentDataRows();
+        $("dataEmpty").hidden = entries.length > 0;
+        if (!entries.length) { table.innerHTML = ""; return; }
+        let html = "<thead><tr>" + COLS.map(([, l]) => "<th>" + l + "</th>").join("") + "</tr></thead><tbody>";
+        if (!rows.length) {
+          html += '<tr><td colspan="' + COLS.length + '" style="color:var(--muted)">No matches.</td></tr>';
+        } else {
+          for (const e of rows) {
+            html += "<tr>" + COLS.map(([k]) => {
+              if (k === "clientName") return '<td class="name">' + esc(cellVal(e, k)) + "</td>";
+              if (k === "status") return '<td><span class="st ' + (e.status || "").toLowerCase() + '">' + esc(e.status || "") + "</span></td>";
+              return "<td>" + esc(cellVal(e, k)) + "</td>";
+            }).join("") + "</tr>";
+          }
+        }
+        table.innerHTML = html + "</tbody>";
+      }
+      $("dataSearch").addEventListener("input", renderData);
+
+      // ---- Downloads ----
+      function stamp() { return new Date().toISOString().slice(0, 10); }
+      function triggerDownload(blob, name) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = name;
+        document.body.appendChild(a); a.click();
+        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+      }
+      function csvEsc(v) {
+        v = String(v == null ? "" : v);
+        return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+      }
+      $("dlExcel").onclick = () => {
+        const rows = currentDataRows();
+        if (!rows.length) return alert("No clients to export.");
+        const lines = [COLS.map(([, l]) => l)];
+        for (const e of rows) lines.push(COLS.map(([k]) => cellVal(e, k)));
+        const csv = "﻿" + lines.map((r) => r.map(csvEsc).join(",")).join("\r\n");
+        triggerDownload(new Blob([csv], { type: "text/csv;charset=utf-8;" }), "nest-creativs-clients-" + stamp() + ".csv");
+      };
+      function buildPrintDoc(rows) {
+        const head = COLS.map(([, l]) => "<th>" + l + "</th>").join("");
+        const body = rows.map((e) => "<tr>" + COLS.map(([k]) => "<td>" + esc(cellVal(e, k)) + "</td>").join("") + "</tr>").join("");
+        return '<!doctype html><html><head><meta charset="utf-8"><title>Nest Creativs — Client Data</title>' +
+          "<style>@page{size:landscape;margin:12mm}body{font-family:Arial,Helvetica,sans-serif;color:#111}" +
+          "h2{margin:0 0 2px}.meta{color:#555;font-size:12px;margin:0 0 14px}" +
+          "table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #999;padding:4px 6px;text-align:left}th{background:#eee}</style>" +
+          '</head><body><h2>Nest Creativs — Client Data</h2><p class="meta">' + rows.length +
+          " client(s) · exported " + new Date().toLocaleDateString() + "</p>" +
+          "<table><thead><tr>" + head + "</tr></thead><tbody>" + body + "</tbody></table>" +
+          "<" + "script>window.onload=function(){setTimeout(function(){window.print()},250)}<" + "/script></body></html>";
+      }
+      $("dlPdf").onclick = () => {
+        const rows = currentDataRows();
+        if (!rows.length) return alert("No clients to export.");
+        const w = window.open("", "_blank");
+        if (w) {
+          w.document.write(buildPrintDoc(rows));
+          w.document.close();
+        } else {
+          // popup blocked → fall back to in-page print
+          let t = '<h2>Nest Creativs — Client Data</h2><p class="meta">' + rows.length +
+            " client(s) · exported " + new Date().toLocaleDateString() + "</p><table><thead><tr>" +
+            COLS.map(([, l]) => "<th>" + l + "</th>").join("") + "</tr></thead><tbody>";
+          for (const e of rows) t += "<tr>" + COLS.map(([k]) => "<td>" + esc(cellVal(e, k)) + "</td>").join("") + "</tr>";
+          $("printArea").innerHTML = t + "</tbody></table>";
+          window.print();
+        }
+      };
+
+      loadEntries();
+    </script>
+  </body>
+</html>

@@ -54,7 +54,8 @@ h1 { font-size: 22px; margin: 0 0 4px; }
 
 label { display: block; font-size: 13px; color: var(--muted); margin: 0 0 6px; }
 
-input[type="text"], input[type="number"], input[type="search"], select, textarea {
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+select, textarea {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--border);
@@ -64,6 +65,16 @@ input[type="text"], input[type="number"], input[type="search"], select, textarea
   outline: none;
   font: inherit;
 }
+/* keep browser autofill from forcing a white background in dark mode */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text);
+  -webkit-box-shadow: 0 0 0 1000px var(--surface) inset;
+  caret-color: var(--text);
+}
+/* native date/time picker icon visible on dark */
+input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7); }
 textarea { resize: vertical; min-height: 140px; font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
 input:focus, textarea:focus, select:focus { border-color: var(--accent); }
 

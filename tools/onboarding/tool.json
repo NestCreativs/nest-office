@@ -1,0 +1,8 @@
+{
+  "name": "Onboarding",
+  "description": "New-client onboarding SOP, entry, and data.",
+  "icon": "onboard",
+  "color": "#0066ff",
+  "tags": "clients",
+  "order": 7
+}
