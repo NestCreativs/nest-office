@@ -17,12 +17,7 @@
         gap: 16px;
         padding: 10px 0 26px;
       }
-      /* Break button pinned to the top-right of the timer stage */
-      .break-top {
-        position: absolute;
-        top: 0;
-        right: 0;
-      }
+      .break-top { position: absolute; top: 0; right: 0; }
 
       .phase-pill {
         padding: 6px 18px;
@@ -92,7 +87,7 @@
   <body>
     <div class="wrap">
       <h1>Work Timer</h1>
-      <p class="sub">Pick a task from your To-Do list and time it. Work and break are tracked separately, saved by day.</p>
+      <p class="sub">Pick a task from your To-Do list and time it. Time is real wall-clock — it keeps counting even if you close the tab.</p>
 
       <div id="stage" class="stage">
         <button class="btn ghost break-top" id="breakBtn" disabled>Break</button>
@@ -157,12 +152,12 @@
       const prog = $("prog");
       const C = 2 * Math.PI * 108;
       prog.style.strokeDasharray = C;
-      prog.style.strokeDashoffset = 0; // full ring (count-up, decorative)
+      prog.style.strokeDashoffset = 0;
 
       let records = [];
       let todoTasks = [];
-      // mode: 'idle' | 'work' | 'break'
-      const st = { task: "", mode: "idle", running: false, workSec: 0, breakSec: 0 };
+      let active = null;      // server-side session: {mode,running,workMs,breakMs,segStart,task}
+      let skew = 0;           // serverNow - clientNow, corrects clock differences
 
       // ---- formatting (local timezone) ----
       function fmt(s) {
@@ -186,16 +181,40 @@
         return d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" });
       }
 
+      // ---- live time from timestamps (immune to tab throttling) ----
+      function liveMs(kind) {
+        if (!active) return 0;
+        let ms = kind === "break" ? active.breakMs : active.workMs;
+        if (active.running && active.mode === kind && active.segStart) {
+          ms += Math.max(0, Date.now() + skew - active.segStart);
+        }
+        return ms;
+      }
+      const liveWorkSec = () => Math.floor(liveMs("work") / 1000);
+      const liveBreakSec = () => Math.floor(liveMs("break") / 1000);
+
+      // ---- apply authoritative server state ----
+      function applyState(data) {
+        if (typeof data.now === "number") skew = data.now - Date.now();
+        records = data.records || [];
+        active = data.active || null;
+        renderRecords();
+        if (active) fillActiveTask();
+        else fillTaskPicker();
+        render();
+      }
+
       // ---- To-Do task picker ----
       async function loadTasks() {
+        if (active) return; // don't disturb an active session
         try {
           const data = await fetch("/api/todo/list").then((r) => r.json());
           todoTasks = (data.tasks || []).filter((t) => !t.done);
         } catch { todoTasks = []; }
         fillTaskPicker();
+        render();
       }
       function fillTaskPicker() {
-        if (st.mode !== "idle") return; // don't disturb an active session
         const sel = $("task");
         const prev = sel.value;
         sel.innerHTML = "";
@@ -213,41 +232,49 @@
           }
           if ([...sel.options].some((o) => o.value === prev)) sel.value = prev;
         }
-        render();
+      }
+      function fillActiveTask() {
+        const sel = $("task");
+        sel.innerHTML = "";
+        const o = document.createElement("option");
+        o.textContent = active.task || "(no task)"; o.selected = true;
+        sel.appendChild(o);
+        sel.disabled = true;
       }
 
       // ---- rendering ----
       function render() {
-        const isBreak = st.mode === "break";
+        const isBreak = active && active.mode === "break";
+        const running = active && active.running;
         $("pill").textContent = isBreak ? "BREAK" : "WORK";
         $("pill").className = "phase-pill " + (isBreak ? "break" : "");
-        prog.classList.toggle("break", isBreak);
-        prog.classList.toggle("paused", !st.running && st.mode !== "idle");
-        $("time").textContent = fmt(isBreak ? st.breakSec : st.workSec);
+        prog.classList.toggle("break", !!isBreak);
+        prog.classList.toggle("paused", !!active && !running);
+        $("time").textContent = fmt(isBreak ? liveBreakSec() : liveWorkSec());
 
-        if (st.mode === "idle") {
+        if (!active) {
           $("status").textContent = todoTasks.length ? "Select a task and press Start" : "Add a task in To-Do first";
           $("totals").textContent = "";
         } else {
           $("status").textContent =
-            (isBreak ? "On break" : "Working") + (st.running ? "" : " (paused)") +
-            (st.task ? " — " + st.task : "");
-          $("totals").innerHTML = "Work <b>" + fmt(st.workSec) + "</b> · Break <b>" + fmt(st.breakSec) + "</b>";
+            (isBreak ? "On break" : "Working") + (running ? "" : " (paused)") +
+            (active.task ? " — " + active.task : "");
+          $("totals").innerHTML = "Work <b>" + fmt(liveWorkSec()) + "</b> · Break <b>" + fmt(liveBreakSec()) + "</b>";
         }
 
-        $("startBtn").textContent = st.mode === "idle" ? "Start" : st.running ? "Pause" : "Resume";
-        $("startBtn").disabled = st.mode === "idle" && todoTasks.length === 0;
+        $("startBtn").textContent = !active ? "Start" : running ? "Pause" : "Resume";
+        $("startBtn").disabled = !active && todoTasks.length === 0;
         $("breakBtn").textContent = isBreak ? "Resume Work" : "Break";
-        $("breakBtn").disabled = st.mode === "idle";
-        $("endBtn").disabled = st.mode === "idle";
-        $("task").disabled = st.mode !== "idle";
+        $("breakBtn").disabled = !active;
+        $("endBtn").disabled = !active;
+        $("task").disabled = !!active;
         renderStats();
       }
       function renderStats() {
         const byDay = {};
         for (const r of records) byDay[localDay(r.end)] = (byDay[localDay(r.end)] || 0) + r.seconds;
         let today = byDay[new Date().toDateString()] || 0;
-        if (st.mode !== "idle") today += st.workSec; // live
+        if (active) today += liveWorkSec(); // live
         const totals = Object.values(byDay), days = totals.length;
         const avg = days ? totals.reduce((a, b) => a + b, 0) / days : 0;
         $("today").textContent = fmtShort(today);
@@ -281,68 +308,38 @@
           brk.textContent = r.breakSeconds ? "break " + fmtShort(r.breakSeconds) : "";
           const del = document.createElement("button");
           del.className = "del"; del.textContent = "✕"; del.title = "Delete";
-          del.onclick = async () => { const db = await wt("/delete", { id: r.id }); records = db.records; renderRecords(); render(); };
+          del.onclick = async () => applyState(await wt("/delete", { id: r.id }));
           div.append(dur, task, brk, del);
           box.appendChild(div);
         }
       }
 
-      // ---- tick ----
-      setInterval(() => {
-        if (!st.running) return;
-        if (st.mode === "work") st.workSec++;
-        else if (st.mode === "break") st.breakSec++;
-        render();
-      }, 1000);
+      // ---- display tick (only re-renders; time comes from timestamps) ----
+      setInterval(() => { if (active && active.running) render(); }, 1000);
 
       // ---- controls ----
-      $("startBtn").onclick = () => {
-        if (st.mode === "idle") {
+      $("startBtn").onclick = async () => {
+        if (!active) {
           const sel = $("task");
           if (!sel.value) return;
-          st.task = sel.selectedOptions[0]?.textContent || "";
-          st.mode = "work";
-          st.running = true;
+          const task = sel.selectedOptions[0]?.textContent || "";
+          applyState(await wt("/start", { task }));
+        } else if (active.running) {
+          applyState(await wt("/pause", {}));
         } else {
-          st.running = !st.running; // pause / resume current phase
+          applyState(await wt("/resume", {}));
         }
-        render();
       };
-
-      $("breakBtn").onclick = () => {
-        if (st.mode === "idle") return;
-        st.mode = st.mode === "work" ? "break" : "work"; // the other counter freezes automatically
-        st.running = true;
-        render();
-      };
-
+      $("breakBtn").onclick = async () => { if (active) applyState(await wt("/break-toggle", {})); };
       $("endBtn").onclick = async () => {
-        if (st.mode === "idle") return;
-        if (st.workSec > 0 || st.breakSec > 0) {
-          const db = await wt("/record", { seconds: st.workSec, breakSeconds: st.breakSec, label: st.task });
-          records = db.records;
-          renderRecords();
-        }
-        st.mode = "idle"; st.running = false; st.workSec = 0; st.breakSec = 0; st.task = "";
-        fillTaskPicker();
+        if (!active) return;
+        applyState(await wt("/end", {}));
+        loadTasks();
       };
-
       $("clearBtn").onclick = async () => {
         if (!confirm("Delete ALL history? This cannot be undone.")) return;
-        const db = await wt("/clear", {});
-        records = db.records; renderRecords(); render();
+        applyState(await wt("/clear", {}));
       };
-
-      // Safety net: save an in-progress session if the tab is closed.
-      window.addEventListener("pagehide", () => {
-        if (st.mode !== "idle" && (st.workSec > 0 || st.breakSec > 0)) {
-          const blob = new Blob(
-            [JSON.stringify({ seconds: st.workSec, breakSeconds: st.breakSec, label: st.task })],
-            { type: "application/json" }
-          );
-          navigator.sendBeacon("/api/work-timer/record", blob);
-        }
-      });
 
       // ---- fullscreen ----
       const stage = $("stage");
@@ -356,16 +353,17 @@
         $("fsBtn").textContent = on ? "Exit Full Screen" : "Full Screen";
       });
 
-      // keep the task list fresh (picks up new To-Do tasks automatically)
-      setInterval(loadTasks, 4000);
-      document.addEventListener("visibilitychange", () => { if (!document.hidden) loadTasks(); });
+      // Re-sync with the server whenever the tab becomes visible again, so the
+      // clock snaps to accurate time after minimize/close/reopen.
+      document.addEventListener("visibilitychange", async () => {
+        if (!document.hidden) { applyState(await wt("/state")); if (!active) loadTasks(); }
+      });
+      setInterval(loadTasks, 4000); // keep task list fresh when idle
 
       // ---- init ----
       (async () => {
-        const db = await wt("/state");
-        records = db.records || [];
-        renderRecords();
-        await loadTasks();
+        applyState(await wt("/state"));
+        if (!active) await loadTasks();
       })();
     </script>
   </body>
