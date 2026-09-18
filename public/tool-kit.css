@@ -17,8 +17,25 @@
   --err: #ef5a5a;
   --radius: 12px;
 }
+
+/* Brand light palette. Applied when the dashboard sets data-theme="light"
+   on the tool's document, or (for a tool opened standalone with no explicit
+   theme) when the OS itself prefers light. */
+:root[data-theme="light"] {
+  --bg: #f3f6fb;
+  --surface: #ffffff;
+  --surface-2: #e9f0fa;
+  --border: #d3e0f0;
+  --text: #002147;
+  --muted: #5b6f8a;
+  --accent: #0066ff;
+  --accent-fg: #ffffff;
+  --ice: #4c73a6;
+  --ok: #1b9e5a;
+  --err: #dc2626;
+}
 @media (prefers-color-scheme: light) {
-  :root {
+  :root:not([data-theme="dark"]):not([data-theme="light"]) {
     --bg: #f3f6fb;
     --surface: #ffffff;
     --surface-2: #e9f0fa;

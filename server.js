@@ -17,11 +17,97 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const url = require("url");
+const crypto = require("crypto");
 
 const PORT = process.env.PORT || 4600;
 const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, "public");
 const TOOLS_DIR = path.join(ROOT, "tools");
+
+// ---------------------------------------------------------------------------
+// Password gate (single shared password from the APP_PASSWORD env var).
+// When APP_PASSWORD is not set the gate is disabled, so local development
+// still works with no setup. On the host, set APP_PASSWORD to turn it on.
+// ---------------------------------------------------------------------------
+const APP_PASSWORD = process.env.APP_PASSWORD || "";
+const AUTH_ENABLED = APP_PASSWORD.length > 0;
+const COOKIE_NAME = "nc_auth";
+const COOKIE_MAX_AGE = 5 * 365 * 24 * 60 * 60; // ~5 years, in seconds
+
+// A stateless token: a hash of the password. It stays valid until the
+// password changes (which rotates the token and logs everyone out).
+function authToken() {
+  return crypto.createHash("sha256").update("nestcreativs:" + APP_PASSWORD).digest("hex");
+}
+function parseCookies(req) {
+  const out = {};
+  const raw = req.headers.cookie || "";
+  for (const part of raw.split(";")) {
+    const i = part.indexOf("=");
+    if (i > -1) out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());
+  }
+  return out;
+}
+function isAuthed(req) {
+  if (!AUTH_ENABLED) return true;
+  const tok = parseCookies(req)[COOKIE_NAME];
+  if (!tok) return false;
+  const a = Buffer.from(tok);
+  const b = Buffer.from(authToken());
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+function isSecure(req) {
+  const proto = req.headers["x-forwarded-proto"] || "";
+  return proto.split(",")[0].trim() === "https" || !!(req.socket && req.socket.encrypted);
+}
+function authCookie(value, maxAge, secure) {
+  let c = `${COOKIE_NAME}=${value}; HttpOnly; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
+  if (secure) c += "; Secure";
+  return c;
+}
+function loginPage(error) {
+  return `<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Nest Creativs Office</title>
+<style>
+  :root { --bg:#080d12; --surface:#0d1621; --surface-2:#0f2038; --border:#1b3050; --text:#fff; --muted:#8ba3c4; --accent:#0066ff; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; display:grid; place-items:center; background:
+      radial-gradient(120% 120% at 0% 0%, rgba(0,102,255,.16), transparent 55%), var(--bg);
+    color:var(--text); font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; padding:20px; }
+  .card { width:100%; max-width:360px; background:var(--surface); border:1px solid var(--border);
+    border-radius:16px; padding:30px 26px; box-shadow:0 18px 60px rgba(0,0,0,.45); }
+  .logo { width:56px; height:56px; margin:0 auto 14px; display:block; }
+  h1 { font-size:19px; margin:0 0 4px; text-align:center; }
+  p.sub { margin:0 0 22px; text-align:center; color:var(--muted); font-size:13.5px; }
+  label { display:block; font-size:13px; color:var(--muted); margin:0 0 6px; }
+  input { width:100%; padding:11px 13px; border:1px solid var(--border); border-radius:10px;
+    background:var(--surface-2); color:var(--text); outline:none; font:inherit; }
+  input:focus { border-color:var(--accent); }
+  button { width:100%; margin-top:16px; padding:11px 16px; border:none; border-radius:10px;
+    background:var(--accent); color:#fff; font:inherit; font-weight:600; cursor:pointer; }
+  button:hover { filter:brightness(1.06); }
+  .err { margin-top:14px; color:#ff8b8b; font-size:13px; text-align:center; }
+</style>
+</head>
+<body>
+  <form class="card" method="POST" action="/login">
+    <svg class="logo" viewBox="0 0 100 100" fill="none"><g fill="#2352ff">
+      <polygon points="27,24 39,24 39,76 27,76"/><polygon points="61,24 73,24 73,76 61,76"/>
+      <polygon points="27,24 39,24 73,76 61,76"/><polygon points="41,57 41,71 52,64"/></g></svg>
+    <h1>Nest Creativs Office</h1>
+    <p class="sub">Enter the password to continue.</p>
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" autocomplete="current-password" autofocus required />
+    <button type="submit">Unlock</button>
+    ${error ? '<p class="err">Incorrect password. Try again.</p>' : ""}
+  </form>
+</body>
+</html>`;
+}
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -89,6 +175,15 @@ function sendJson(res, status, obj) {
   });
 }
 
+function redirect(res, location, extraHeaders = {}) {
+  res.writeHead(302, { Location: location, "Cache-Control": "no-cache", ...extraHeaders });
+  res.end();
+}
+
+function sendHtml(res, status, html, extraHeaders = {}) {
+  send(res, status, html, { "Content-Type": "text/html; charset=utf-8", ...extraHeaders });
+}
+
 function readBody(req) {
   return new Promise((resolve) => {
     let data = "";
@@ -132,6 +227,40 @@ function serveStatic(res, baseDir, relPath) {
 const server = http.createServer(async (req, res) => {
   const parsed = url.parse(req.url, true);
   let pathname = decodeURIComponent(parsed.pathname);
+
+  // --- Auth: login page & submit -----------------------------------------
+  if (pathname === "/login") {
+    if (!AUTH_ENABLED || isAuthed(req)) return redirect(res, "/");
+    if (req.method === "POST") {
+      const raw = await readBody(req);
+      let password = "";
+      const ctype = req.headers["content-type"] || "";
+      if (ctype.includes("application/json")) {
+        try { password = (JSON.parse(raw) || {}).password || ""; } catch { password = ""; }
+      } else {
+        password = new URLSearchParams(raw).get("password") || "";
+      }
+      const ok =
+        password.length === APP_PASSWORD.length &&
+        crypto.timingSafeEqual(Buffer.from(password), Buffer.from(APP_PASSWORD));
+      if (ok) {
+        return redirect(res, "/", { "Set-Cookie": authCookie(authToken(), COOKIE_MAX_AGE, isSecure(req)) });
+      }
+      return sendHtml(res, 401, loginPage(true));
+    }
+    return sendHtml(res, 200, loginPage(false));
+  }
+
+  // --- Auth: logout (clear the cookie) -----------------------------------
+  if (pathname === "/logout") {
+    return redirect(res, "/login", { "Set-Cookie": authCookie("", 0, isSecure(req)) });
+  }
+
+  // --- Auth gate: everything below requires a valid cookie ---------------
+  if (!isAuthed(req)) {
+    if (pathname.startsWith("/api/")) return sendJson(res, 401, { error: "Not authenticated" });
+    return redirect(res, "/login");
+  }
 
   // --- API: list of tools -------------------------------------------------
   if (pathname === "/api/tools") {
@@ -210,6 +339,7 @@ server.listen(PORT, "0.0.0.0", () => {
   console.log("");
   console.log(`   ▶  Open:   http://localhost:${PORT}`);
   console.log(`   ▶  Tools:  ${tools.length} loaded (${tools.map((t) => t.name).join(", ") || "none yet"})`);
+  console.log(`   ▶  Auth:   ${AUTH_ENABLED ? "ON (password gate active)" : "OFF (set APP_PASSWORD to enable)"}`);
   console.log("");
   console.log("   Press Ctrl+C to stop.");
   console.log("");

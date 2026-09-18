@@ -21,11 +21,27 @@ const els = {
 // ---- Theme ----------------------------------------------------------------
 const savedTheme = localStorage.getItem("toolhub-theme");
 if (savedTheme) document.documentElement.setAttribute("data-theme", savedTheme);
+
+function currentTheme() {
+  return document.documentElement.getAttribute("data-theme") || "dark";
+}
+// Push the dashboard's theme into the open tool iframe (same origin) so tools
+// match the shell instead of following the OS scheme.
+function applyThemeToFrame() {
+  try {
+    const doc = els.frame.contentDocument;
+    if (doc && doc.documentElement) doc.documentElement.setAttribute("data-theme", currentTheme());
+  } catch (e) {
+    /* cross-origin or not loaded yet; ignore */
+  }
+}
+els.frame.addEventListener("load", applyThemeToFrame);
+
 els.themeToggle.addEventListener("click", () => {
-  const next =
-    document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+  const next = currentTheme() === "dark" ? "light" : "dark";
   document.documentElement.setAttribute("data-theme", next);
   localStorage.setItem("toolhub-theme", next);
+  applyThemeToFrame();
 });
 
 // ---- Sidebar collapse -----------------------------------------------------
