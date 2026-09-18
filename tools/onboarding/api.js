@@ -1,5 +1,5 @@
 /**
- * Onboarding backend — stores client onboarding entries.
+ * Onboarding backend: stores client onboarding entries.
  * <DATA_DIR>/onboarding.json = { entries: [ { id, ...fields, createdAt } ] }
  */
 const fs = require("fs");

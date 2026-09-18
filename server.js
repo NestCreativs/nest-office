@@ -1,5 +1,5 @@
 /**
- * Nest Creativs Office — a private, local, extensible tool platform.
+ * Nest Creativs Office: a private, local, extensible tool platform.
  *
  * Zero dependencies: uses only Node's built-in modules, so it runs
  * the moment Node.js is installed (no `npm install` required).

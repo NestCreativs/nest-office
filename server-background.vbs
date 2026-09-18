@@ -1,4 +1,4 @@
-' Nest Creativs Office — starts ONLY the server, hidden, with no browser window.
+' Nest Creativs Office: starts ONLY the server, hidden, with no browser window.
 ' Used by the Windows startup entry so the hub is always running in the
 ' background. To open the dashboard, use the Desktop shortcut or go to
 ' http://localhost:4600

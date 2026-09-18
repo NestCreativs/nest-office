@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Invoice</title>
+    <link rel="stylesheet" href="/tool-kit.css" />
+    <style>
+      .wrap { max-width: 960px; }
+
+      /* ---------- Chrome (dark UI around the paper) ---------- */
+      .chrome { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 18px; }
+      .chrome .spacer { flex: 1; }
+      .chrome select { width: auto; min-width: 190px; }
+      .chrome .cur { width: auto; min-width: 78px; }
+      .saved-note { font-size: 12.5px; color: var(--muted); margin: -6px 0 18px; min-height: 16px; }
+
+      /* ---------- The invoice paper (always light so it prints clean) ---------- */
+      .sheet {
+        --p-text: #1c2230;
+        --p-muted: #7a8698;
+        --p-line: #eceef2;
+        --p-accent: #0066ff;
+        --p-deep: #002147;
+        background: #ffffff;
+        color: var(--p-text);
+        border-radius: 18px;
+        box-shadow: 0 18px 60px rgba(3, 12, 30, 0.35);
+        overflow: hidden;
+        max-width: 860px;
+        margin: 0 auto;
+        font-size: 14px;
+      }
+
+      /* borderless "paper" inputs (#sheet id keeps these over tool-kit defaults) */
+      #sheet input, #sheet textarea {
+        background: transparent; border: 1px solid transparent; color: var(--p-text);
+        font: inherit; padding: 5px 7px; border-radius: 8px; width: 100%;
+        transition: border-color .12s ease, background .12s ease;
+      }
+      #sheet textarea { min-height: 0; resize: none; overflow: hidden; font-family: inherit; }
+      #sheet input::placeholder, #sheet textarea::placeholder { color: #b3bccb; }
+      #sheet input:hover, #sheet textarea:hover { border-color: var(--p-line); }
+      #sheet input:focus, #sheet textarea:focus { border-color: var(--p-accent); background: #f4f8ff; }
+      #sheet input[type="date"]::-webkit-calendar-picker-indicator { filter: none; opacity: .5; }
+
+      /* ---------- Header band ---------- */
+      .band {
+        background: linear-gradient(120deg, #0066ff 0%, #0a3fb0 55%, #002147 100%);
+        color: #fff; padding: 30px clamp(24px, 5vw, 46px);
+        display: flex; justify-content: space-between; align-items: center; gap: 24px;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      }
+      .brand-chip {
+        width: 92px; height: 92px; flex-shrink: 0; border-radius: 16px; cursor: pointer;
+        background: #fff; display: grid; place-items: center; position: relative; overflow: hidden;
+        box-shadow: 0 8px 22px rgba(0,0,0,.18);
+      }
+      #logoHolder { width: 100%; height: 100%; display: grid; place-items: center; }
+      .brand-chip svg, .brand-chip img { width: 66px; height: 66px; object-fit: contain; }
+      .logo-hint {
+        position: absolute; inset: auto 0 0 0; background: rgba(0,0,0,.55); color: #fff;
+        font-size: 9.5px; text-align: center; padding: 2px 0; letter-spacing: .02em;
+        opacity: 0; transition: opacity .15s ease; pointer-events: none;
+      }
+      .brand-chip:hover .logo-hint { opacity: 1; }
+      .band-right { text-align: right; }
+      .band-right .title { font-size: 40px; font-weight: 800; letter-spacing: 6px; line-height: 1; }
+      .band-num { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+      .band-num label { color: rgba(255,255,255,.75); font-size: 12px; margin: 0; }
+      #sheet .band-num input {
+        color: #fff; font-weight: 700; text-align: right; width: 150px;
+        border-color: rgba(255,255,255,.4); background: rgba(255,255,255,.10);
+      }
+      #sheet .band-num input::placeholder { color: rgba(255,255,255,.6); }
+      #sheet .band-num input:focus { background: rgba(255,255,255,.2); border-color: #fff; }
+
+      /* ---------- Body ---------- */
+      .body { padding: 30px clamp(24px, 5vw, 46px) 40px; }
+
+      .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+      @media (max-width: 620px) { .parties { grid-template-columns: 1fr; } }
+      .party {
+        border: 1px solid var(--p-line); border-radius: 14px; padding: 14px 16px;
+        background: #fbfcfe;
+      }
+      .party.bill { border-color: color-mix(in srgb, var(--p-accent) 30%, var(--p-line)); background: #f5f9ff; }
+      .party .cap {
+        font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+        color: var(--p-accent); margin-bottom: 8px;
+      }
+      .party .co { font-weight: 700; font-size: 15px; }
+
+      .dates { display: flex; gap: 14px; margin-top: 18px; flex-wrap: wrap; }
+      .date-card {
+        flex: 1; min-width: 150px; border: 1px solid var(--p-line); border-radius: 12px; padding: 10px 14px;
+      }
+      .date-card .cap { font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--p-muted); }
+
+      /* ---------- Items ---------- */
+      table.items { width: 100%; border-collapse: collapse; margin-top: 26px; }
+      table.items thead th {
+        text-align: left; font-size: 11px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase;
+        color: var(--p-muted); padding: 0 10px 10px; border-bottom: 2px solid var(--p-deep);
+      }
+      table.items th.num, table.items td.num { text-align: right; }
+      table.items td { padding: 7px 6px; border-bottom: 1px solid var(--p-line); vertical-align: top; }
+      .cell-num input { text-align: right; }
+      .col-qty { width: 66px; } .col-rate { width: 104px; } .col-amt { width: 116px; }
+      .amt-val { padding: 6px 7px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+      .rm { border: none; background: transparent; color: #c6ccd6; cursor: pointer; font-size: 18px; line-height: 1; padding: 4px 6px; border-radius: 7px; }
+      .rm:hover { color: #e5484d; background: #fdecec; }
+      .col-rm { width: 30px; }
+      .add-row {
+        display: inline-flex; align-items: center; gap: 7px; align-self: flex-start;
+        border: 1px dashed color-mix(in srgb, var(--p-accent) 45%, var(--p-line));
+        background: #f5f9ff; color: var(--p-accent);
+        cursor: pointer; font: inherit; font-weight: 700; font-size: 13px; padding: 8px 14px; border-radius: 10px;
+      }
+      .add-row:hover { background: #e9f1ff; }
+      .add-row svg { width: 16px; height: 16px; }
+
+      /* ---------- Footer: notes + totals ---------- */
+      .foot { display: grid; grid-template-columns: 1fr 320px; gap: 26px; margin-top: 18px; align-items: start; }
+      @media (max-width: 680px) { .foot { grid-template-columns: 1fr; } }
+      .foot-left { display: flex; flex-direction: column; gap: 22px; }
+      .notes .cap { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--p-muted); margin-bottom: 6px; }
+      .notes textarea { min-height: 70px; }
+
+      .totbox {
+        border: 2px solid #c3cede; border-radius: 14px; overflow: hidden;
+        box-shadow: 0 8px 22px rgba(3, 12, 30, 0.10);
+      }
+      .tot-row { display: flex; justify-content: space-between; align-items: center; padding: 11px 16px; font-size: 14px; }
+      .tot-row + .tot-row { border-top: 1px solid var(--p-line); }
+      .tot-row .lab { color: var(--p-muted); }
+      .tot-row .val { font-weight: 700; font-variant-numeric: tabular-nums; }
+      .tot-row .val.minus { color: #d4322c; }
+      .disc-ctrl { display: inline-flex; align-items: center; gap: 6px; }
+      #sheet .disc-ctrl select { width: auto; min-width: 62px; padding: 5px 6px; border-color: var(--p-line); }
+      #sheet .disc-ctrl input { width: 78px; text-align: right; border-color: var(--p-line); }
+      .tot-grand {
+        background: linear-gradient(120deg, #0066ff, #002147); color: #fff;
+        display: flex; justify-content: space-between; align-items: center; padding: 15px 16px;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      }
+      .tot-grand .lab { font-weight: 700; letter-spacing: .04em; }
+      .tot-grand .val { font-size: 21px; font-weight: 800; font-variant-numeric: tabular-nums; }
+      .cur-sym { opacity: .85; font-weight: 700; margin-right: 2px; }
+
+      /* ---------- Print ---------- */
+      @media print {
+        :root { color-scheme: light; }
+        body { background: #fff; }
+        .wrap { padding: 0; max-width: none; }
+        .chrome, .saved-note, .add-row, .col-rm, .rm, .logo-hint { display: none !important; }
+        .sheet { box-shadow: none; border-radius: 0; margin: 0; max-width: none; }
+        #sheet input, #sheet textarea { border-color: transparent !important; background: transparent !important; }
+        #sheet .band-num input { color: #fff !important; }
+        tr.empty-row, .tot-row.zero-row { display: none !important; }
+        .disc-ctrl select, .disc-ctrl input { border-color: transparent !important; }
+        @page { margin: 12mm; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Invoice</h1>
+      <p class="sub">Fill in the invoice, save it to reuse later, and download a clean PDF.</p>
+
+      <div class="chrome">
+        <button class="btn" id="newBtn">＋ New invoice</button>
+        <button class="btn secondary" id="saveBtn">Save</button>
+        <button class="btn secondary" id="pdfBtn">⬇ Download PDF</button>
+        <button class="btn secondary" id="delBtn" hidden>Delete</button>
+        <span class="spacer"></span>
+        <select id="curSel" class="cur" title="Currency">
+          <option value="$">$ USD</option>
+          <option value="£">£ GBP</option>
+          <option value="€">€ EUR</option>
+          <option value="₹">₹ INR</option>
+          <option value="Rs ">Rs PKR</option>
+          <option value="AED ">AED</option>
+          <option value="">None</option>
+        </select>
+        <select id="loadSel" title="Open a saved invoice">
+          <option value="">Saved invoices…</option>
+        </select>
+      </div>
+      <p class="saved-note" id="savedNote"></p>
+
+      <!-- The invoice paper -->
+      <div class="sheet" id="sheet">
+        <div class="band">
+          <div class="brand-chip" id="logoBox" title="Click to upload your logo">
+            <div id="logoHolder"></div>
+            <span class="logo-hint" id="logoHint">Change</span>
+          </div>
+          <input type="file" id="logoInput" accept="image/*" hidden />
+          <div class="band-right">
+            <div class="title">INVOICE</div>
+            <div class="band-num">
+              <label>No.</label>
+              <input data-f="number" placeholder="INV-1" />
+            </div>
+          </div>
+        </div>
+
+        <div class="body">
+          <div class="parties">
+            <div class="party">
+              <div class="cap">From</div>
+              <input class="co" data-f="from.company" placeholder="Your Company" />
+              <input data-f="from.name" placeholder="Your Name" />
+              <input data-f="from.address" placeholder="Company's Address" />
+              <input data-f="from.city" placeholder="City, State Zip" />
+              <input data-f="from.country" placeholder="Country" />
+            </div>
+            <div class="party bill">
+              <div class="cap">Bill To</div>
+              <input class="co" data-f="billTo.company" placeholder="Your Client's Company" />
+              <input data-f="billTo.name" placeholder="Client's Name" />
+              <input data-f="billTo.address" placeholder="Client's Address" />
+              <input data-f="billTo.city" placeholder="City, State Zip" />
+              <input data-f="billTo.country" placeholder="Country" />
+            </div>
+          </div>
+
+          <div class="dates">
+            <div class="date-card"><div class="cap">Invoice Date</div><input type="date" data-f="date" /></div>
+            <div class="date-card"><div class="cap">Due Date</div><input type="date" data-f="due" /></div>
+          </div>
+
+          <table class="items">
+            <thead>
+              <tr>
+                <th>Item Description</th>
+                <th class="num col-qty">Qty</th>
+                <th class="num col-rate">Rate</th>
+                <th class="num col-amt">Amount</th>
+                <th class="col-rm"></th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+
+          <div class="foot">
+            <div class="foot-left">
+              <button class="add-row" id="addRow">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                Add Line Item
+              </button>
+              <div class="notes">
+                <div class="cap">Notes</div>
+                <textarea data-f="notes" placeholder="It was great doing business with you.">It was great doing business with you.</textarea>
+              </div>
+            </div>
+            <div class="totbox">
+              <div class="tot-row"><span class="lab">Sub Total</span><span class="val" id="subTotal">0.00</span></div>
+              <div class="tot-row" id="discRow">
+                <span class="lab">Discount</span>
+                <span class="disc-ctrl">
+                  <select id="discType">
+                    <option value="pct">%</option>
+                    <option value="flat">Amount</option>
+                  </select>
+                  <input id="discVal" inputmode="decimal" placeholder="0" />
+                </span>
+                <span class="val minus" id="discAmt">0.00</span>
+              </div>
+              <div class="tot-grand"><span class="lab">TOTAL</span><span class="val" id="grandTotal"><span class="cur-sym">$</span>0.00</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const DEFAULT_LOGO =
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none"><g fill="#2352ff">' +
+        '<polygon points="27,24 39,24 39,76 27,76"/><polygon points="61,24 73,24 73,76 61,76"/>' +
+        '<polygon points="27,24 39,24 73,76 61,76"/><polygon points="41,57 41,71 52,64"/></g></svg>';
+
+      let currentId = null;   // id of loaded/saved invoice; null = unsaved
+      let logoData = "";      // uploaded logo data URL; "" = default brand mark
+      const money = (n) => (isFinite(n) ? n : 0).toFixed(2);
+
+      // grow a textarea to fit its content (replaces the manual resize handle)
+      function autogrow(el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; }
+      function growAll() { for (const t of document.querySelectorAll("#sheet textarea")) autogrow(t); }
+
+      // ---------- Logo ----------
+      function renderLogo() {
+        $("logoHolder").innerHTML = logoData ? '<img src="' + logoData + '" alt="logo" />' : DEFAULT_LOGO;
+      }
+      $("logoBox").addEventListener("click", () => $("logoInput").click());
+      $("logoInput").addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 1024 * 1024) { alert("Please use an image under 1MB."); return; }
+        const r = new FileReader();
+        r.onload = () => { logoData = r.result; renderLogo(); };
+        r.readAsDataURL(file);
+      });
+
+      // ---------- Line items ----------
+      function rowEl(item = {}) {
+        const tr = document.createElement("tr");
+        tr.className = "item-row";
+        tr.innerHTML =
+          '<td><textarea rows="2" class="c-desc" placeholder="Enter item name/description"></textarea></td>' +
+          '<td class="num cell-num col-qty"><input class="c-qty" inputmode="decimal" placeholder="1" /></td>' +
+          '<td class="num cell-num col-rate"><input class="c-rate" inputmode="decimal" placeholder="0.00" /></td>' +
+          '<td class="num col-amt"><div class="amt-val">0.00</div></td>' +
+          '<td class="col-rm"><button class="rm" title="Remove line">×</button></td>';
+        tr.querySelector(".c-desc").value = item.desc || "";
+        tr.querySelector(".c-qty").value = item.qty != null ? item.qty : "";
+        tr.querySelector(".c-rate").value = item.rate != null ? item.rate : "";
+        tr.querySelector(".rm").addEventListener("click", () => { tr.remove(); ensureRow(); recalc(); });
+        return tr;
+      }
+      function addRow(item) { $("rows").appendChild(rowEl(item)); }
+      function ensureRow() { if (!$("rows").children.length) addRow(); }
+
+      // ---------- Totals (Sub Total − Discount = Total) ----------
+      function discountAmount(sub) {
+        const v = parseFloat($("discVal").value) || 0;
+        const amt = $("discType").value === "pct" ? sub * v / 100 : v;
+        return Math.min(Math.max(amt, 0), sub); // never below 0 or above subtotal
+      }
+      function recalc() {
+        let sub = 0;
+        for (const tr of $("rows").children) {
+          const qty = parseFloat(tr.querySelector(".c-qty").value) || 0;
+          const rate = parseFloat(tr.querySelector(".c-rate").value) || 0;
+          const amount = qty * rate;
+          sub += amount;
+          tr.querySelector(".amt-val").textContent = money(amount);
+        }
+        const disc = discountAmount(sub);
+        const cur = $("curSel").value;
+        $("subTotal").textContent = money(sub);
+        $("discAmt").textContent = (disc > 0 ? "−" : "") + money(disc);
+        $("grandTotal").innerHTML = '<span class="cur-sym">' + cur + "</span>" + money(sub - disc);
+      }
+
+      // ---------- Collect / fill ----------
+      const q = (path) => document.querySelector('[data-f="' + path + '"]');
+      const setField = (path, val) => { const el = q(path); if (el) el.value = val || ""; };
+      const getField = (path) => { const el = q(path); return el ? el.value : ""; };
+
+      function collect() {
+        const items = [];
+        for (const tr of $("rows").children) {
+          items.push({
+            desc: tr.querySelector(".c-desc").value,
+            qty: tr.querySelector(".c-qty").value,
+            rate: tr.querySelector(".c-rate").value,
+          });
+        }
+        const sub = parseFloat($("subTotal").textContent) || 0;
+        const disc = discountAmount(sub);
+        return {
+          logo: logoData,
+          currency: $("curSel").value,
+          number: getField("number"),
+          date: getField("date"),
+          due: getField("due"),
+          from: { company: getField("from.company"), name: getField("from.name"), address: getField("from.address"), city: getField("from.city"), country: getField("from.country") },
+          billTo: { company: getField("billTo.company"), name: getField("billTo.name"), address: getField("billTo.address"), city: getField("billTo.city"), country: getField("billTo.country") },
+          items,
+          notes: getField("notes"),
+          discountType: $("discType").value,
+          discountValue: $("discVal").value,
+          subTotal: money(sub),
+          discountAmount: money(disc),
+          total: money(sub - disc),
+        };
+      }
+      function fill(data) {
+        data = data || {};
+        logoData = data.logo || "";
+        renderLogo();
+        $("curSel").value = data.currency != null ? data.currency : "$";
+        setField("number", data.number);
+        setField("date", data.date);
+        setField("due", data.due);
+        const from = data.from || {}, bill = data.billTo || {};
+        setField("from.company", from.company); setField("from.name", from.name); setField("from.address", from.address); setField("from.city", from.city); setField("from.country", from.country);
+        setField("billTo.company", bill.company); setField("billTo.name", bill.name); setField("billTo.address", bill.address); setField("billTo.city", bill.city); setField("billTo.country", bill.country);
+        setField("notes", data.notes != null ? data.notes : "It was great doing business with you.");
+        $("discType").value = data.discountType || "pct";
+        $("discVal").value = data.discountValue || "";
+        $("rows").innerHTML = "";
+        (data.items && data.items.length ? data.items : [{}, {}]).forEach(addRow);
+        ensureRow();
+        recalc();
+        growAll();
+      }
+
+      // ---------- Saved list ----------
+      async function loadList() {
+        try {
+          const res = await fetch("/api/invoice/list");
+          const d = await res.json();
+          const sel = $("loadSel");
+          sel.innerHTML = '<option value="">Saved invoices…</option>';
+          for (const inv of d.invoices) {
+            const o = document.createElement("option");
+            o.value = inv.id;
+            const who = inv.billName || "(no client)";
+            o.textContent = (inv.number || "Invoice") + " · " + who + (inv.total ? " · " + inv.currency + inv.total : "");
+            if (inv.id === currentId) o.selected = true;
+            sel.appendChild(o);
+          }
+          return d.nextSeq || 1;
+        } catch { return 1; }
+      }
+
+      async function newInvoice() {
+        currentId = null;
+        const nextSeq = await loadList();
+        const today = new Date().toISOString().slice(0, 10);
+        fill({ number: "INV-" + nextSeq, date: today, due: today });
+        $("loadSel").value = "";
+        refreshDelBtn();
+        note("New invoice. Not saved yet.");
+      }
+
+      async function openInvoice(id) {
+        if (!id) return;
+        try {
+          const res = await fetch("/api/invoice/get?id=" + encodeURIComponent(id));
+          if (!res.ok) throw 0;
+          const rec = await res.json();
+          currentId = rec.id;
+          fill(rec.data);
+          refreshDelBtn();
+          note("Opened " + (rec.data.number || "invoice") + ".");
+        } catch { note("Could not open that invoice.", true); }
+      }
+
+      async function saveInvoice() {
+        const data = collect();
+        const url = currentId ? "/api/invoice/update" : "/api/invoice/save";
+        const payload = currentId ? { id: currentId, data } : { data };
+        try {
+          const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+          const d = await res.json();
+          if (!res.ok) throw 0;
+          currentId = d.id;
+          await loadList();
+          $("loadSel").value = currentId;
+          refreshDelBtn();
+          note("Saved " + (data.number || "invoice") + " ✓");
+        } catch { note("Save failed.", true); }
+      }
+
+      function refreshDelBtn() { $("delBtn").hidden = !currentId; }
+
+      async function deleteInvoice() {
+        if (!currentId) return;
+        if (!confirm("Delete this saved invoice? This cannot be undone.")) return;
+        try {
+          await fetch("/api/invoice/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: currentId }) });
+        } catch {}
+        currentId = null;
+        await newInvoice();
+        note("Invoice deleted.");
+      }
+
+      function note(msg, err) {
+        const n = $("savedNote");
+        n.textContent = msg;
+        n.style.color = err ? "var(--err)" : "var(--muted)";
+      }
+
+      // ---------- Print / PDF ----------
+      window.addEventListener("beforeprint", () => {
+        for (const tr of $("rows").children) {
+          const empty = !tr.querySelector(".c-desc").value.trim() &&
+                        !tr.querySelector(".c-qty").value.trim() &&
+                        !tr.querySelector(".c-rate").value.trim();
+          tr.classList.toggle("empty-row", empty);
+        }
+        // hide the discount row on the PDF when there is no discount
+        const disc = discountAmount(parseFloat($("subTotal").textContent) || 0);
+        $("discRow").classList.toggle("zero-row", !(disc > 0));
+      });
+      window.addEventListener("afterprint", () => {
+        for (const tr of $("rows").children) tr.classList.remove("empty-row");
+        $("discRow").classList.remove("zero-row");
+      });
+
+      // ---------- Wire up ----------
+      $("sheet").addEventListener("input", (e) => {
+        if (e.target.tagName === "TEXTAREA") autogrow(e.target);
+        recalc();
+      });
+      $("curSel").addEventListener("change", recalc);
+      $("discType").addEventListener("change", recalc);
+      $("addRow").addEventListener("click", () => { addRow(); });
+      $("saveBtn").addEventListener("click", saveInvoice);
+      $("newBtn").addEventListener("click", newInvoice);
+      $("delBtn").addEventListener("click", deleteInvoice);
+      $("pdfBtn").addEventListener("click", () => window.print());
+      $("loadSel").addEventListener("change", (e) => openInvoice(e.target.value));
+
+      // ---------- Boot ----------
+      renderLogo();
+      newInvoice();
+    </script>
+  </body>
+</html>

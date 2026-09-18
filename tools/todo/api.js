@@ -1,5 +1,5 @@
 /**
- * To-Do backend — tasks persisted to <DATA_DIR>/todo.json.
+ * To-Do backend: tasks persisted to <DATA_DIR>/todo.json.
  * Array order = rank (top = highest).
  */
 const fs = require("fs");

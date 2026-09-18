@@ -1,4 +1,4 @@
-/* Nest Creativs Office — dashboard shell styles
+/* Nest Creativs Office: dashboard shell styles
    Brand palette:
      Obsidian Shard #080D12 · Electric Blue #0066FF · Deep Blue #002147
      Ice Blue #B3C9E6 · White #FFFFFF                                    */
@@ -95,7 +95,7 @@ body {
 .sidebar-toggle svg,
 .sidebar-open svg { width: 18px; height: 18px; }
 
-/* floating reopen button — only visible when collapsed */
+/* floating reopen button: only visible when collapsed */
 .sidebar-open {
   position: fixed;
   top: 14px;
@@ -168,6 +168,13 @@ body {
 }
 .tool-item:hover {
   background: var(--surface-2);
+}
+.tool-item[draggable="true"] { cursor: grab; }
+.tool-item.dragging {
+  opacity: 0.55;
+  cursor: grabbing;
+  background: var(--surface-2);
+  border: 1px dashed var(--accent);
 }
 .tool-item.active {
   background: color-mix(in srgb, var(--accent) 16%, transparent);

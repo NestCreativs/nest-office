@@ -15,7 +15,7 @@
  *   sendRaw(status, data, hdrs) // reply with anything
  * }
  *
- * You can edit this file and just re-run the request — no server restart
+ * You can edit this file and just re-run the request; no server restart
  * needed (the module is reloaded on every call).
  */
 

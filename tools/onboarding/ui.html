@@ -250,7 +250,7 @@ Send footage over whenever you shoot it, we'll batch and edit as it comes in rat
           <div class="step-head"><span class="step-num">3</span><span class="step-title">Confirm Payment Received</span><span class="pill gate">Gate</span></div>
           <p class="step-body">
             Do not proceed past this step until payment has landed. Log the amount and date. This is the
-            actual gate before any onboarding work begins — a client should not move to Active status
+            actual gate before any onboarding work begins. A client should not move to Active status
             without this confirmed.
           </p>
         </div>
@@ -266,7 +266,7 @@ Send footage over whenever you shoot it, we'll batch and edit as it comes in rat
         <div class="step">
           <div class="step-head"><span class="step-num">5</span><span class="step-title">Begin Editing</span></div>
           <p class="step-body">
-            Hand off to the regular production and delivery workflow (tracked separately in Excel — video
+            Hand off to the regular production and delivery workflow (tracked separately in Excel; video
             counts, revisions, and payment cycles are not tracked in this tool).
           </p>
         </div>
@@ -305,7 +305,7 @@ Send footage over whenever you shoot it, we'll batch and edit as it comes in rat
             <div class="field"><label>Upfront taken <span class="note">(optional)</span></label>
               <input type="text" id="upfront" placeholder="e.g. $250" /></div>
             <div class="field"><label>Outstanding <span class="note">(optional)</span></label>
-              <input type="text" id="outstanding" placeholder="e.g. $250 — leave blank if paid in full" /></div>
+              <input type="text" id="outstanding" placeholder="e.g. $250, leave blank if paid in full" /></div>
             <div class="field"><label>Status <span class="req">*</span></label>
               <select id="status" required>
                 <option value="" disabled selected>Select…</option>
@@ -333,7 +333,7 @@ Send footage over whenever you shoot it, we'll batch and edit as it comes in rat
         </form>
 
         <div id="entryList"></div>
-        <p class="note" id="entryEmpty" hidden>No entries yet — press “＋ New entry” to add your first client.</p>
+        <p class="note" id="entryEmpty" hidden>No entries yet. Press “＋ New entry” to add your first client.</p>
       </section>
 
       <!-- ============ DATA (read-only) ============ -->
@@ -346,7 +346,7 @@ Send footage over whenever you shoot it, we'll batch and edit as it comes in rat
         <div class="table-scroll">
           <table class="data-table" id="dataTable"></table>
         </div>
-        <p class="note" id="dataEmpty" hidden>No entries yet — add clients in the Entry tab and they'll appear here.</p>
+        <p class="note" id="dataEmpty" hidden>No entries yet. Add clients in the Entry tab and they'll appear here.</p>
       </section>
     </div>
 
@@ -446,8 +446,8 @@ Send footage over whenever you shoot it, we'll batch and edit as it comes in rat
               (e.source ? "<span>🎯 " + esc(e.source) + "</span>" : "") +
             "</div>" +
             '<div class="entry-chips">' +
-              '<span class="chip ' + (e.welcomeSent === "Yes" ? "yes" : "") + '">Welcome ' + (e.welcomeSent || "—") + "</span>" +
-              '<span class="chip ' + (e.kickoffSent === "Yes" ? "yes" : "") + '">Kickoff ' + (e.kickoffSent || "—") + "</span>" +
+              '<span class="chip ' + (e.welcomeSent === "Yes" ? "yes" : "") + '">Welcome ' + (e.welcomeSent || "No") + "</span>" +
+              '<span class="chip ' + (e.kickoffSent === "Yes" ? "yes" : "") + '">Kickoff ' + (e.kickoffSent || "No") + "</span>" +
             "</div>" +
             (e.notes ? '<div class="entry-notes">' + esc(e.notes) + "</div>" : "");
           div.querySelector(".edit").onclick = () => openForm(e);
@@ -552,11 +552,11 @@ Send footage over whenever you shoot it, we'll batch and edit as it comes in rat
       function buildPrintDoc(rows) {
         const head = COLS.map(([, l]) => "<th>" + l + "</th>").join("");
         const body = rows.map((e) => "<tr>" + COLS.map(([k]) => "<td>" + esc(cellVal(e, k)) + "</td>").join("") + "</tr>").join("");
-        return '<!doctype html><html><head><meta charset="utf-8"><title>Nest Creativs — Client Data</title>' +
+        return '<!doctype html><html><head><meta charset="utf-8"><title>Nest Creativs Client Data</title>' +
           "<style>@page{size:landscape;margin:12mm}body{font-family:Arial,Helvetica,sans-serif;color:#111}" +
           "h2{margin:0 0 2px}.meta{color:#555;font-size:12px;margin:0 0 14px}" +
           "table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #999;padding:4px 6px;text-align:left}th{background:#eee}</style>" +
-          '</head><body><h2>Nest Creativs — Client Data</h2><p class="meta">' + rows.length +
+          '</head><body><h2>Nest Creativs Client Data</h2><p class="meta">' + rows.length +
           " client(s) · exported " + new Date().toLocaleDateString() + "</p>" +
           "<table><thead><tr>" + head + "</tr></thead><tbody>" + body + "</tbody></table>" +
           "<" + "script>window.onload=function(){setTimeout(function(){window.print()},250)}<" + "/script></body></html>";
@@ -570,7 +570,7 @@ Send footage over whenever you shoot it, we'll batch and edit as it comes in rat
           w.document.close();
         } else {
           // popup blocked → fall back to in-page print
-          let t = '<h2>Nest Creativs — Client Data</h2><p class="meta">' + rows.length +
+          let t = '<h2>Nest Creativs Client Data</h2><p class="meta">' + rows.length +
             " client(s) · exported " + new Date().toLocaleDateString() + "</p><table><thead><tr>" +
             COLS.map(([, l]) => "<th>" + l + "</th>").join("") + "</tr></thead><tbody>";
           for (const e of rows) t += "<tr>" + COLS.map(([k]) => "<td>" + esc(cellVal(e, k)) + "</td>").join("") + "</tr>";

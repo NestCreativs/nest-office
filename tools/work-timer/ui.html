@@ -7,137 +7,152 @@
     <link rel="stylesheet" href="/tool-kit.css" />
     <style>
       body { display: flex; flex-direction: column; }
-      .wrap { width: 100%; }
+      .wrap { width: 100%; max-width: 820px; }
 
-      .stage {
+      /* ============ Hero timer ============ */
+      .hero {
         position: relative;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 16px;
-        padding: 10px 0 26px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 26px 26px 24px;
+        background:
+          radial-gradient(130% 130% at 0% 0%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 55%),
+          var(--surface);
+        transition: background 0.35s ease, border-color 0.35s ease;
       }
-      .break-top { position: absolute; top: 0; right: 0; }
+      .hero.break {
+        background:
+          radial-gradient(130% 130% at 0% 0%, color-mix(in srgb, var(--ice) 15%, transparent), transparent 55%),
+          var(--surface);
+      }
+      .hero.running { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+      .hero.running.break { border-color: color-mix(in srgb, var(--ice) 45%, var(--border)); }
 
-      .phase-pill {
-        padding: 6px 18px;
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0.14em;
-        background: color-mix(in srgb, var(--accent) 22%, transparent);
-        color: var(--accent);
-        border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+      .hero-top { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+      .chip-status {
+        display: inline-flex; align-items: center; gap: 7px;
+        padding: 6px 14px; border-radius: 999px;
+        font-size: 11px; font-weight: 800; letter-spacing: 0.12em;
+        background: var(--surface-2); color: var(--muted); border: 1px solid var(--border);
       }
-      .phase-pill.break {
-        background: color-mix(in srgb, var(--ice) 20%, transparent);
-        color: var(--ice);
-        border-color: color-mix(in srgb, var(--ice) 45%, transparent);
-      }
+      .chip-status .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+      .chip-status.work { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); border-color: transparent; }
+      .chip-status.break { color: var(--ice); background: color-mix(in srgb, var(--ice) 14%, transparent); border-color: transparent; }
+      .hero.running .chip-status .dot { animation: pulse 1.4s ease-in-out infinite; }
+      @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.7); } }
 
-      .ring-wrap { position: relative; width: clamp(240px, 56vmin, 340px); aspect-ratio: 1; }
-      .ring { width: 100%; height: 100%; transform: rotate(-90deg); }
-      .ring .track { fill: none; stroke: var(--surface-2); stroke-width: 12; }
-      .ring .prog { fill: none; stroke: var(--accent); stroke-width: 12; stroke-linecap: round; transition: stroke 0.3s ease; }
-      .ring .prog.break { stroke: var(--ice); }
-      .ring .prog.paused { opacity: 0.4; }
-      .time {
-        position: absolute; inset: 0; display: grid; place-items: center;
-        font-size: clamp(40px, 10.5vmin, 66px); font-weight: 800;
-        font-variant-numeric: tabular-nums; letter-spacing: 1px;
+      .task-wrap { margin-left: auto; max-width: 60%; }
+      .task-wrap select {
+        width: auto; max-width: 100%; padding: 7px 12px; font-size: 13px; border-radius: 9px;
+        border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+      }
+      .task-wrap select:disabled { opacity: .85; }
+
+      .big-time {
+        font-size: clamp(58px, 15vmin, 108px);
+        font-weight: 800; line-height: 1.02; letter-spacing: 1px;
+        font-variant-numeric: tabular-nums;
         font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+        margin: 6px 0 2px;
       }
-      .status { color: var(--muted); font-size: 14px; min-height: 20px; text-align: center; }
-      .totals { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
-      .totals b { color: var(--text); font-weight: 700; }
+      .cur-label { color: var(--muted); font-size: 13px; min-height: 18px; }
 
-      .task-row { width: min(440px, 100%); }
-      select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px;
-               background: var(--surface); color: var(--text); font: inherit; }
-      select:disabled { opacity: 0.7; }
+      /* activity bar (replaces the ring) */
+      .run-bar { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin: 20px 0 22px; position: relative; }
+      .run-bar::after {
+        content: ""; position: absolute; top: 0; bottom: 0; width: 38%; border-radius: 999px;
+        left: -40%; background: var(--accent); opacity: .9;
+      }
+      .hero.break .run-bar::after { background: var(--ice); }
+      .hero.running .run-bar::after { animation: sweep 1.5s cubic-bezier(.4,0,.2,1) infinite; }
+      @keyframes sweep { 0% { left: -40%; } 100% { left: 102%; } }
 
-      .controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
-      .controls .btn { min-width: 110px; }
+      .splits { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .split { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+      .split .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+      .split .val { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+      .split.work .val { color: var(--accent); }
+      .split.break .val { color: var(--ice); }
+
+      .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+      .controls .btn { min-width: 108px; padding: 11px 18px; }
       .btn.ghost { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
       .btn.ghost:hover { border-color: var(--accent); color: var(--accent); }
+      .btn.danger:hover { border-color: var(--err); color: var(--err); }
       .btn:disabled { opacity: 0.4; cursor: default; }
+      .btn.icon { min-width: 0; padding: 11px 14px; }
 
-      .panel { display: flex; flex-direction: column; gap: 18px; }
-      .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-      @media (max-width: 560px) { .stats { grid-template-columns: 1fr; } }
-      .stat-card { text-align: center; }
+      /* ============ Stats ============ */
+      .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0; }
+      @media (max-width: 560px) { .stats { grid-template-columns: 1fr; } .splits { grid-template-columns: 1fr; } }
+      .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; text-align: center; }
+      .stat-card .stat-label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+      .stat-card .stat { font-size: 24px; font-weight: 800; margin-top: 4px; }
 
-      .day-head { font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
-                  color: var(--muted); margin: 14px 0 8px; }
-      .rec { display: flex; align-items: center; gap: 12px; padding: 11px 14px;
-             border: 1px solid var(--border); border-radius: 10px; background: var(--surface); margin-bottom: 8px; }
-      .rec .task { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .rec .task.empty { color: var(--muted); }
+      /* ============ History ============ */
+      .table-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+      .day-head { font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin: 16px 0 8px; }
+      .rec { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); margin-bottom: 8px; transition: border-color .15s ease; }
+      .rec:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
+      .rec .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+      .rec .task { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+      .rec .task.empty { color: var(--muted); font-weight: 400; }
       .rec .dur { font-weight: 700; font-variant-numeric: tabular-nums; flex-shrink: 0; }
       .rec .brk { color: var(--muted); font-size: 12px; flex-shrink: 0; }
       .rec .del { border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 15px; flex-shrink: 0; }
       .rec .del:hover { color: var(--err); }
-      .table-head { display: flex; justify-content: space-between; align-items: center; }
 
-      #stage:fullscreen { width: 100%; height: 100%; justify-content: center; background: var(--bg); gap: 24px; padding: 24px; }
-      #stage:fullscreen .ring-wrap { width: min(64vmin, 520px); }
-      body.fs .panel, body.fs h1, body.fs .sub { display: none; }
+      /* ============ Fullscreen ============ */
+      #hero:fullscreen {
+        width: 100%; height: 100%; border-radius: 0; display: flex; flex-direction: column;
+        justify-content: center; padding: 6vmin 8vmin;
+      }
+      #hero:fullscreen .big-time { font-size: min(24vmin, 240px); }
+      #hero:fullscreen .splits { max-width: 620px; }
     </style>
   </head>
   <body>
     <div class="wrap">
       <h1>Work Timer</h1>
-      <p class="sub">Pick a task from your To-Do list and time it. Time is real wall-clock — it keeps counting even if you close the tab.</p>
+      <p class="sub">Pick a task, track work and breaks separately. Real wall-clock time that keeps counting even if you close the tab.</p>
 
-      <div id="stage" class="stage">
-        <button class="btn ghost break-top" id="breakBtn" disabled>Break</button>
-        <span class="phase-pill" id="pill">WORK</span>
-        <div class="ring-wrap">
-          <svg class="ring" viewBox="0 0 240 240">
-            <circle class="track" cx="120" cy="120" r="108" />
-            <circle class="prog" id="prog" cx="120" cy="120" r="108" />
-          </svg>
-          <div class="time" id="time">00:00</div>
+      <div class="hero" id="hero">
+        <div class="hero-top">
+          <span class="chip-status" id="pill"><span class="dot"></span><span id="pillText">READY</span></span>
+          <div class="task-wrap"><select id="task" title="Task from your To-Do list"></select></div>
         </div>
-        <div class="status" id="status">Select a task to start</div>
-        <div class="totals" id="totals"></div>
 
-        <div class="task-row">
-          <select id="task" title="Task from your To-Do list"></select>
+        <div class="big-time" id="time">00:00</div>
+        <div class="cur-label" id="status">Select a task and press Start</div>
+
+        <div class="run-bar"></div>
+
+        <div class="splits">
+          <div class="split work"><div class="lbl">Work</div><div class="val" id="workTime">00:00</div></div>
+          <div class="split break"><div class="lbl">Break</div><div class="val" id="breakTime">00:00</div></div>
         </div>
 
         <div class="controls">
           <button class="btn" id="startBtn">Start</button>
-          <button class="btn ghost" id="endBtn" disabled>End</button>
-          <button class="btn ghost" id="fsBtn">Full Screen</button>
+          <button class="btn ghost" id="breakBtn" disabled>Break</button>
+          <button class="btn ghost danger" id="endBtn" disabled>End</button>
+          <button class="btn ghost icon" id="fsBtn" title="Full screen">⛶</button>
         </div>
       </div>
 
-      <div class="panel">
-        <div class="stats">
-          <div class="card stat-card">
-            <div class="stat-label">Today's work</div>
-            <div class="stat" id="today">0m</div>
-          </div>
-          <div class="card stat-card">
-            <div class="stat-label">Avg / working day</div>
-            <div class="stat" id="avg">0m</div>
-          </div>
-          <div class="card stat-card">
-            <div class="stat-label">Days tracked</div>
-            <div class="stat" id="days">0</div>
-          </div>
-        </div>
-
-        <div>
-          <div class="table-head">
-            <h3 style="margin: 0">History</h3>
-            <button class="btn ghost" id="clearBtn">Clear all</button>
-          </div>
-          <div id="recs" style="margin-top: 6px"></div>
-          <p class="note" id="empty" hidden>No sessions yet — pick a task and press Start.</p>
-        </div>
+      <div class="stats">
+        <div class="stat-card"><div class="stat-label">Today's work</div><div class="stat" id="today">0m</div></div>
+        <div class="stat-card"><div class="stat-label">Avg / working day</div><div class="stat" id="avg">0m</div></div>
+        <div class="stat-card"><div class="stat-label">Days tracked</div><div class="stat" id="days">0</div></div>
       </div>
+
+      <div class="table-head">
+        <h3 style="margin: 0">History</h3>
+        <button class="btn ghost" id="clearBtn" style="min-width:0;padding:7px 14px;font-size:13px">Clear all</button>
+      </div>
+      <div id="recs"></div>
+      <p class="note" id="empty" hidden>No sessions yet. Pick a task and press Start.</p>
     </div>
 
     <script>
@@ -147,17 +162,12 @@
           headers: { "Content-Type": "application/json" },
           body: body ? JSON.stringify(body) : undefined,
         }).then((r) => r.json());
-
       const $ = (id) => document.getElementById(id);
-      const prog = $("prog");
-      const C = 2 * Math.PI * 108;
-      prog.style.strokeDasharray = C;
-      prog.style.strokeDashoffset = 0;
 
       let records = [];
       let todoTasks = [];
-      let active = null;      // server-side session: {mode,running,workMs,breakMs,segStart,task}
-      let skew = 0;           // serverNow - clientNow, corrects clock differences
+      let active = null;   // {mode,running,workMs,breakMs,segStart,task}
+      let skew = 0;
 
       // ---- formatting (local timezone) ----
       function fmt(s) {
@@ -181,32 +191,29 @@
         return d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" });
       }
 
-      // ---- live time from timestamps (immune to tab throttling) ----
+      // ---- live time from timestamps ----
       function liveMs(kind) {
         if (!active) return 0;
         let ms = kind === "break" ? active.breakMs : active.workMs;
-        if (active.running && active.mode === kind && active.segStart) {
-          ms += Math.max(0, Date.now() + skew - active.segStart);
-        }
+        if (active.running && active.mode === kind && active.segStart) ms += Math.max(0, Date.now() + skew - active.segStart);
         return ms;
       }
       const liveWorkSec = () => Math.floor(liveMs("work") / 1000);
       const liveBreakSec = () => Math.floor(liveMs("break") / 1000);
 
-      // ---- apply authoritative server state ----
+      // ---- apply server state ----
       function applyState(data) {
         if (typeof data.now === "number") skew = data.now - Date.now();
         records = data.records || [];
         active = data.active || null;
         renderRecords();
-        if (active) fillActiveTask();
-        else fillTaskPicker();
+        if (active) fillActiveTask(); else fillTaskPicker();
         render();
       }
 
-      // ---- To-Do task picker ----
+      // ---- task picker ----
       async function loadTasks() {
-        if (active) return; // don't disturb an active session
+        if (active) return;
         try {
           const data = await fetch("/api/todo/list").then((r) => r.json());
           todoTasks = (data.tasks || []).filter((t) => !t.done);
@@ -220,46 +227,40 @@
         sel.innerHTML = "";
         if (!todoTasks.length) {
           const o = document.createElement("option");
-          o.value = ""; o.textContent = "No tasks — add some in To-Do"; o.disabled = true; o.selected = true;
-          sel.appendChild(o);
-          sel.disabled = true;
+          o.value = ""; o.textContent = "No tasks yet. Add some in To-Do"; o.disabled = true; o.selected = true;
+          sel.appendChild(o); sel.disabled = true;
         } else {
           sel.disabled = false;
-          for (const t of todoTasks) {
-            const o = document.createElement("option");
-            o.value = t.id; o.textContent = t.text;
-            sel.appendChild(o);
-          }
+          for (const t of todoTasks) { const o = document.createElement("option"); o.value = t.id; o.textContent = t.text; sel.appendChild(o); }
           if ([...sel.options].some((o) => o.value === prev)) sel.value = prev;
         }
       }
       function fillActiveTask() {
         const sel = $("task");
         sel.innerHTML = "";
-        const o = document.createElement("option");
-        o.textContent = active.task || "(no task)"; o.selected = true;
-        sel.appendChild(o);
-        sel.disabled = true;
+        const o = document.createElement("option"); o.textContent = active.task || "(no task)"; o.selected = true;
+        sel.appendChild(o); sel.disabled = true;
       }
 
-      // ---- rendering ----
+      // ---- render ----
       function render() {
         const isBreak = active && active.mode === "break";
         const running = active && active.running;
-        $("pill").textContent = isBreak ? "BREAK" : "WORK";
-        $("pill").className = "phase-pill " + (isBreak ? "break" : "");
-        prog.classList.toggle("break", !!isBreak);
-        prog.classList.toggle("paused", !!active && !running);
+        const hero = $("hero");
+        hero.classList.toggle("running", !!running);
+        hero.classList.toggle("break", !!isBreak);
+
+        $("pillText").textContent = !active ? "READY" : isBreak ? "BREAK" : "WORK";
+        $("pill").className = "chip-status " + (!active ? "" : isBreak ? "break" : "work");
+
         $("time").textContent = fmt(isBreak ? liveBreakSec() : liveWorkSec());
+        $("workTime").textContent = fmt(liveWorkSec());
+        $("breakTime").textContent = fmt(liveBreakSec());
 
         if (!active) {
-          $("status").textContent = todoTasks.length ? "Select a task and press Start" : "Add a task in To-Do first";
-          $("totals").textContent = "";
+          $("status").textContent = todoTasks.length ? "Select a task and press Start" : "Add a task in the To-Do tool first";
         } else {
-          $("status").textContent =
-            (isBreak ? "On break" : "Working") + (running ? "" : " (paused)") +
-            (active.task ? " — " + active.task : "");
-          $("totals").innerHTML = "Work <b>" + fmt(liveWorkSec()) + "</b> · Break <b>" + fmt(liveBreakSec()) + "</b>";
+          $("status").textContent = (isBreak ? "On break" : "Working") + (running ? "" : " · paused") + (active.task ? " · " + active.task : "");
         }
 
         $("startBtn").textContent = !active ? "Start" : running ? "Pause" : "Resume";
@@ -274,7 +275,7 @@
         const byDay = {};
         for (const r of records) byDay[localDay(r.end)] = (byDay[localDay(r.end)] || 0) + r.seconds;
         let today = byDay[new Date().toDateString()] || 0;
-        if (active) today += liveWorkSec(); // live
+        if (active) today += liveWorkSec();
         const totals = Object.values(byDay), days = totals.length;
         const avg = days ? totals.reduce((a, b) => a + b, 0) / days : 0;
         $("today").textContent = fmtShort(today);
@@ -291,30 +292,26 @@
           if (day !== currentDay) {
             currentDay = day;
             const h = document.createElement("div");
-            h.className = "day-head";
-            h.textContent = dayLabel(r.end);
+            h.className = "day-head"; h.textContent = dayLabel(r.end);
             box.appendChild(h);
           }
           const div = document.createElement("div");
           div.className = "rec";
-          const dur = document.createElement("span");
-          dur.className = "dur"; dur.textContent = fmtShort(r.seconds);
-          const task = document.createElement("span");
-          task.className = "task" + (r.label ? "" : " empty");
-          task.textContent = r.label || "—";
-          if (r.label) task.title = r.label;
-          const brk = document.createElement("span");
-          brk.className = "brk";
-          brk.textContent = r.breakSeconds ? "break " + fmtShort(r.breakSeconds) : "";
+          div.innerHTML =
+            '<span class="dot"></span>' +
+            '<span class="task' + (r.label ? "" : " empty") + '">' + (r.label ? escapeHtml(r.label) : "No task") + "</span>" +
+            (r.breakSeconds ? '<span class="brk">break ' + fmtShort(r.breakSeconds) + "</span>" : "") +
+            '<span class="dur">' + fmtShort(r.seconds) + "</span>";
           const del = document.createElement("button");
           del.className = "del"; del.textContent = "✕"; del.title = "Delete";
           del.onclick = async () => applyState(await wt("/delete", { id: r.id }));
-          div.append(dur, task, brk, del);
+          div.appendChild(del);
           box.appendChild(div);
         }
       }
+      function escapeHtml(s) { return String(s || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 
-      // ---- display tick (only re-renders; time comes from timestamps) ----
+      // ---- display tick ----
       setInterval(() => { if (active && active.running) render(); }, 1000);
 
       // ---- controls ----
@@ -322,49 +319,28 @@
         if (!active) {
           const sel = $("task");
           if (!sel.value) return;
-          const task = sel.selectedOptions[0]?.textContent || "";
-          applyState(await wt("/start", { task }));
-        } else if (active.running) {
-          applyState(await wt("/pause", {}));
-        } else {
-          applyState(await wt("/resume", {}));
-        }
+          applyState(await wt("/start", { task: sel.selectedOptions[0]?.textContent || "" }));
+        } else if (active.running) applyState(await wt("/pause", {}));
+        else applyState(await wt("/resume", {}));
       };
       $("breakBtn").onclick = async () => { if (active) applyState(await wt("/break-toggle", {})); };
-      $("endBtn").onclick = async () => {
-        if (!active) return;
-        applyState(await wt("/end", {}));
-        loadTasks();
-      };
+      $("endBtn").onclick = async () => { if (!active) return; applyState(await wt("/end", {})); loadTasks(); };
       $("clearBtn").onclick = async () => {
         if (!confirm("Delete ALL history? This cannot be undone.")) return;
         applyState(await wt("/clear", {}));
       };
 
       // ---- fullscreen ----
-      const stage = $("stage");
-      $("fsBtn").onclick = () => {
-        if (document.fullscreenElement) document.exitFullscreen();
-        else if (stage.requestFullscreen) stage.requestFullscreen();
-      };
-      document.addEventListener("fullscreenchange", () => {
-        const on = !!document.fullscreenElement;
-        document.body.classList.toggle("fs", on);
-        $("fsBtn").textContent = on ? "Exit Full Screen" : "Full Screen";
-      });
+      const hero = $("hero");
+      $("fsBtn").onclick = () => { if (document.fullscreenElement) document.exitFullscreen(); else if (hero.requestFullscreen) hero.requestFullscreen(); };
+      document.addEventListener("fullscreenchange", () => { $("fsBtn").textContent = document.fullscreenElement ? "✕" : "⛶"; });
 
-      // Re-sync with the server whenever the tab becomes visible again, so the
-      // clock snaps to accurate time after minimize/close/reopen.
-      document.addEventListener("visibilitychange", async () => {
-        if (!document.hidden) { applyState(await wt("/state")); if (!active) loadTasks(); }
-      });
-      setInterval(loadTasks, 4000); // keep task list fresh when idle
+      // keep task list fresh + resync after minimize/close
+      setInterval(loadTasks, 4000);
+      document.addEventListener("visibilitychange", async () => { if (!document.hidden) { applyState(await wt("/state")); if (!active) loadTasks(); } });
 
       // ---- init ----
-      (async () => {
-        applyState(await wt("/state"));
-        if (!active) await loadTasks();
-      })();
+      (async () => { applyState(await wt("/state")); if (!active) await loadTasks(); })();
     </script>
   </body>
 </html>

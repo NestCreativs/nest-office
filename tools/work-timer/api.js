@@ -1,5 +1,5 @@
 /**
- * Work Timer backend — timestamp-based so elapsed time is always real
+ * Work Timer backend: timestamp-based so elapsed time is always real
  * wall-clock time, even if the tab was minimized, closed, or reopened later.
  *
  * The running session lives on the SERVER as accumulated milliseconds plus the

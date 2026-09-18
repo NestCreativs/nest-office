@@ -1,4 +1,4 @@
-' Nest Creativs Office — starts the local server with NO terminal window,
+' Nest Creativs Office: starts the local server with NO terminal window,
 ' then opens it in your default browser. Double-click this instead of start.bat.
 Dim sh, fso, here
 Set sh = CreateObject("WScript.Shell")

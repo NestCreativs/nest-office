@@ -1,4 +1,4 @@
-/* Tool Hub — dashboard logic (vanilla JS, no build step) */
+/* Tool Hub: dashboard logic (vanilla JS, no build step) */
 
 const state = {
   tools: [],
@@ -66,26 +66,49 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
   onboard:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>',
+  invoice:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><polyline points="14 3 14 8 19 8"/><line x1="8" y1="12" x2="15" y2="12"/><line x1="8" y1="16" x2="15" y2="16"/></svg>',
 };
 
 function iconEl(tool) {
   const span = document.createElement("span");
   span.className = "ic";
   const svg = ICONS[tool.icon];
+  // One consistent accent colour for every tool icon.
+  span.style.color = "var(--accent)";
   if (svg) {
     span.innerHTML = svg;
-    span.style.color = tool.color || "var(--accent)";
   } else {
-    // fallback: text/emoji in the tool's colour
     span.textContent = tool.icon || tool.name.slice(0, 1).toUpperCase();
-    span.style.color = tool.color || "var(--accent)";
   }
   return span;
 }
 
+// ---- Custom drag order (persisted) ---------------------------------------
+let customOrder = [];
+try { customOrder = JSON.parse(localStorage.getItem("toolhub-order") || "[]"); } catch { customOrder = []; }
+
+// Return tools sorted by the user's saved drag order; anything not in that
+// list keeps its default order and falls in after the saved ones.
+function orderedTools() {
+  const rank = new Map(customOrder.map((id, i) => [id, i]));
+  return [...state.tools].sort((a, b) => {
+    const ra = rank.has(a.id) ? rank.get(a.id) : Infinity;
+    const rb = rank.has(b.id) ? rank.get(b.id) : Infinity;
+    return ra - rb;
+  });
+}
+
+function saveOrderFromDom() {
+  const ids = [...els.list.querySelectorAll(".tool-item")].map((el) => el.dataset.id);
+  customOrder = ids;
+  localStorage.setItem("toolhub-order", JSON.stringify(ids));
+  render(els.search.value); // reflect the new order in the home cards too
+}
+
 function render(filter = "") {
   const q = filter.trim().toLowerCase();
-  const matches = state.tools.filter(
+  const matches = orderedTools().filter(
     (t) =>
       !q ||
       (t.name && t.name.toLowerCase().includes(q)) ||
@@ -98,17 +121,33 @@ function render(filter = "") {
   if (matches.length === 0) {
     const d = document.createElement("div");
     d.className = "empty";
-    d.textContent = state.tools.length ? "No matches." : "No tools yet — add one!";
+    d.textContent = state.tools.length ? "No matches." : "No tools yet. Add one!";
     els.list.appendChild(d);
   }
+  const canDrag = !q; // reordering only makes sense on the full, unfiltered list
   for (const tool of matches) {
     const btn = document.createElement("button");
     btn.className = "tool-item" + (state.active === tool.id ? " active" : "");
+    btn.dataset.id = tool.id;
     btn.appendChild(iconEl(tool));
     const label = document.createElement("span");
     label.textContent = tool.name;
     btn.appendChild(label);
-    btn.addEventListener("click", () => openTool(tool.id));
+    btn.addEventListener("click", () => { if (!btn.dataset.dragged) openTool(tool.id); });
+    if (canDrag) {
+      btn.draggable = true;
+      btn.addEventListener("dragstart", (e) => {
+        btn.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+      });
+      btn.addEventListener("dragend", () => {
+        btn.classList.remove("dragging");
+        // suppress the click that fires right after a drag
+        btn.dataset.dragged = "1";
+        setTimeout(() => delete btn.dataset.dragged, 0);
+        saveOrderFromDom();
+      });
+    }
     els.list.appendChild(btn);
   }
 
@@ -135,11 +174,31 @@ function render(filter = "") {
   }
 }
 
+// ---- Drag-to-reorder: live shuffle of the sidebar list -------------------
+function dragAfter(container, y) {
+  const items = [...container.querySelectorAll(".tool-item:not(.dragging)")];
+  let closest = { offset: -Infinity, el: null };
+  for (const el of items) {
+    const box = el.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if (offset < 0 && offset > closest.offset) closest = { offset, el };
+  }
+  return closest.el;
+}
+els.list.addEventListener("dragover", (e) => {
+  const dragging = els.list.querySelector(".dragging");
+  if (!dragging) return;
+  e.preventDefault();
+  const after = dragAfter(els.list, e.clientY);
+  if (after == null) els.list.appendChild(dragging);
+  else els.list.insertBefore(dragging, after);
+});
+
 // ---- Open / close a tool --------------------------------------------------
 function openTool(id) {
   const tool = state.tools.find((t) => t.id === id);
   if (!tool || !tool.hasUi) {
-    // No UI file — still show a friendly message
+    // No UI file; still show a friendly message
     if (tool) alert(`"${tool.name}" has no UI yet.`);
     return;
   }

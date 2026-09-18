@@ -1,4 +1,4 @@
-/* Tool Hub — shared styles for individual tools.
+/* Tool Hub: shared styles for individual tools.
    Link this from any tool's ui.html:  <link rel="stylesheet" href="/tool-kit.css">
    It gives you theme-aware colors, buttons, inputs, and layout helpers. */
 

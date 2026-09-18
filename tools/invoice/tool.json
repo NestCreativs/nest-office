@@ -1,0 +1,8 @@
+{
+  "name": "Invoice",
+  "description": "Create, save, and download client invoices.",
+  "icon": "invoice",
+  "color": "#0066ff",
+  "tags": "billing",
+  "order": 2
+}

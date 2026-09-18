@@ -1,5 +1,5 @@
 /**
- * Notes backend — demonstrates persisting data to disk.
+ * Notes backend: demonstrates persisting data to disk.
  * Notes are stored in <DATA_DIR>/notes.json (created on first save).
  */
 const fs = require("fs");

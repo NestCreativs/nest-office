@@ -1,12 +1,12 @@
 # Nest Creativs Office
 
 Your own private, local platform for building and running tools. It runs entirely
-on your machine — nothing is sent anywhere. Add new tools over time by dropping a
+on your machine; nothing is sent anywhere. Add new tools over time by dropping a
 folder in `tools/`.
 
 ## Requirements
 
-- [Node.js](https://nodejs.org) (LTS). One-time install. Nothing else — the app
+- [Node.js](https://nodejs.org) (LTS). One-time install. Nothing else; the app
   uses **zero npm dependencies**, so there is no `npm install` step.
 
 ## Run it
@@ -26,7 +26,7 @@ To use a different port: `set PORT=8080 && node server.js`.
 
 All tools save their data as JSON files in **one central folder**:
 
-- **Locally:** `toolhub/data/` (created automatically) — `todo.json`,
+- **Locally:** `toolhub/data/` (created automatically): `todo.json`,
   `work-timer.json`, `notes.json`.
 - **On a host (Railway, etc.):** set the env var **`DATA_DIR=/data`** and mount a
   persistent volume at **`/data`**. All tool data is then written there and
@@ -41,7 +41,7 @@ Railway setup:
 | Environment variable | `DATA_DIR=/data` |
 
 Without a volume the app still runs, but on hosts with an ephemeral filesystem the
-data resets on redeploy — so mount the volume if you want it to persist.
+data resets on redeploy, so mount the volume if you want it to persist.
 
 ## How it's organized
 
@@ -76,18 +76,18 @@ toolhub/
 
 1. Copy `tools/_template` → `tools/my-tool`.
 2. Edit `tool.json` (name, description, icon, color).
-3. Build `ui.html` — a normal web page. Link `/tool-kit.css` for the shared look.
+3. Build `ui.html`, a normal web page. Link `/tool-kit.css` for the shared look.
 4. *(Optional)* add `api.js` for server-side logic. Your UI calls it at
    `/api/my-tool/...`. Great for file access, databases, or calling an API with
    a secret key that never reaches the browser.
-5. Refresh the dashboard — the tool appears automatically. No restart needed to
+5. Refresh the dashboard and the tool appears automatically. No restart needed to
    add tools or change a UI; `api.js` also hot-reloads per request.
 
 Folders starting with `_` or `.` are hidden from the dashboard.
 
 ### Tip
 
-Ask Claude Code — *"add a &lt;whatever&gt; tool to my office"* — and it can
+Ask Claude Code (*"add a &lt;whatever&gt; tool to my office"*) and it can
 scaffold the entire folder for you.
 
 ## Included tools
